@@ -15,8 +15,6 @@ jobs:
 
       - name: Install Python
         uses: actions/setup-python@main
-        with:
-          python-version: 3.11
 
       - name: Cache Python packages
         uses: actions/cache@main
