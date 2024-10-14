@@ -41,13 +41,13 @@ time.sleep(5)  # Tăng thời gian chờ để đảm bảo trang tải
 driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 time.sleep(3)
 
-# Sử dụng WebDriverWait để tìm và click vào phần tử "Assets" để hiển thị danh sách các assets
+# Sử dụng WebDriverWait để tìm và click vào phần tử "Assets" bằng ID để hiển thị danh sách các assets
 try:
     logging.info("Looking for the Assets section...")
 
-    # Tìm và click vào phần tử "summary" chứa Assets
+    # Tìm và click vào phần tử "Assets" bằng ID (nếu có)
     assets_button = WebDriverWait(driver, 15).until(
-        EC.element_to_be_clickable((By.XPATH, "//summary[contains(@class, 'text-bold') and contains(text(), 'Assets')]"))
+        EC.element_to_be_clickable((By.ID, "repo-content-pjax-container"))
     )
     assets_button.click()
     logging.info("Clicked on the Assets button.")
