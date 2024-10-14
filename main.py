@@ -89,6 +89,22 @@ for repo in repositories:
 driver.quit()
 logging.info("Browser closed.")
 
+# Hàm để tải APK từ Uptodown
+def download_uptodown():
+    # Tạm giả lập link tải xuống APK và phiên bản
+    apk_url = "https://example.com/youtube-v16.38.39.apk"  # Thay đổi thành URL thực tế
+    filename = "youtube-v16.38.39.apk"
+    
+    response = requests.get(apk_url)
+    if response.status_code == 200:
+        with open(filename, 'wb') as apk_file:
+            apk_file.write(response.content)
+        logging.info(f"Downloaded APK: {filename}")
+        return filename
+    else:
+        logging.error(f"Failed to download APK. Status code: {response.status_code}")
+        return None
+
 def find_files(directory, file_prefix, file_suffix):
     files_found = []
     for root, dirs, files in os.walk(directory):
