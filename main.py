@@ -90,3 +90,33 @@ for repo in repositories:
 # Đóng trình duyệt
 driver.quit()
 logging.info("Browser closed.")
+
+import os
+import subprocess
+
+# Hàm để tìm các file .jar trong thư mục hiện tại
+def find_jar_files(directory):
+    jar_files = []
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith('.jar'):
+                jar_files.append(os.path.join(root, file))
+    return jar_files
+
+# Hàm để chạy lệnh Java
+def run_java_command(jar_file):
+    command = ['java', '-jar', jar_file]  # Thay đổi lệnh nếu cần
+    try:
+        result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        logging.info("Output:", result.stdout.decode())
+    except subprocess.CalledProcessError as e:
+        logging.error("Error:", e.stderr.decode())
+
+# Thư mục cần tìm kiếm
+directory = '.'  # Thay đổi thành thư mục bạn muốn tìm kiếm
+
+# Tìm và chạy các file jar
+jar_files = find_jar_files(directory)
+for jar in jar_files:
+    logging.info(f'Running {jar}...')
+    run_java_command(jar)
