@@ -77,7 +77,8 @@ def download_resource(url: str, filename: str) -> str:
         logging.error(f"Download URL is None. Cannot download {filename}.")
         return None
 
-    filepath = os.path.join("./", filename)
+    # Lưu trực tiếp file trong thư mục hiện tại
+    filepath = filename
     
     # Add User-Agent header
     headers = {
@@ -95,39 +96,10 @@ def download_resource(url: str, filename: str) -> str:
         return None
 
 # Main function to download APK from Uptodown based on patches.json versions
-def download_uptodown():
-    with open("./patches.json", "r") as patches_file:
-        patches = json.load(patches_file)
-
-        versions = set()
-        for patch in patches:
-            compatible_packages = patch.get("compatiblePackages")
-            if compatible_packages and isinstance(compatible_packages, list):
-                for package in compatible_packages:
-                    if (
-                        package.get("name") == "com.google.android.youtube" and
-                        package.get("versions") is not None and
-                        isinstance(package["versions"], list) and
-                        package["versions"]
-                    ):
-                        versions.update(
-                            map(str.strip, package["versions"])
-                        )
-                        
-        version = sorted(versions, reverse=True)[0]  # Use the latest version
-        download_link = get_download_link(version)
-        filename = f"youtube-v{version}.apk"
-        
-        return download_resource(download_link, filename)
-
-# Function to find required files (CLI, patches, integrations)
-def find_files(directory, file_prefix, file_suffix):
-    files_found = []
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.startswith(file_prefix) and file.endswith(file_suffix):
-                files_found.append(os.path.join(root, file))
-    return files_found
+def download_uptodown(version: str):
+    download_link = get_download_link(version)
+    filename = f"youtube-v{version}.apk"
+    return download_resource(download_link, filename)
 
 # Function to run the Java command
 def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version):
@@ -186,23 +158,26 @@ repositories = [
 for repo in repositories:
     download_assets_from_repo(repo)
 
-# Directory containing the files
-directory = '.'
-
-# Find necessary files
-cli_jar_files = find_files(directory, 'revanced-cli', '.jar')
-patches_jar_files = find_files(directory, 'revanced-patches', '.jar')
-integrations_apk_files = find_files(directory, 'revanced-integrations', '.apk')
+# Find necessary files directly in the current directory
+def find_file(file_prefix, file_suffix):
+    for file in os.listdir():
+        if file.startswith(file_prefix) and file.endswith(file_suffix):
+            return file
+    return None
 
 # Check if all necessary files are found and proceed to patch the APK
-if cli_jar_files and patches_jar_files and integrations_apk_files:
-    cli_jar = cli_jar_files[0]  # First found file
-    patches_jar = patches_jar_files[0]  # First found file
-    integrations_apk = integrations_apk_files[0]  # First found file
+cli_jar = find_file('revanced-cli', '.jar')
+patches_jar = find_file('revanced-patches', '.jar')
+integrations_apk = find_file('revanced-integrations', '.apk')
 
-    input_apk = download_uptodown()  # Download APK from Uptodown
+if cli_jar and patches_jar and integrations_apk:
+    # Load the patches.json to get the version
+    with open("./patches.json", "r") as patches_file:
+        patches = json.load(patches_file)
+        version = sorted({v for p in patches for pkg in p.get("compatiblePackages", []) if pkg.get("name") == "com.google.android.youtube" for v in pkg.get("versions", [])}, reverse=True)[0]
+        
+    input_apk = download_uptodown(version)  # Download APK from Uptodown
     if input_apk:
-        version = input_apk.split('-v')[-1].split('.apk')[0]  # Extract version from APK filename
         logging.info(f"Running {cli_jar} with patches and integrations...")
         run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
 else:
