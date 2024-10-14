@@ -246,15 +246,38 @@ def create_github_release(app_name, download_files, apk_file_path):
         logging.error("APK file not found, skipping release.")
         return
 
-    existing_release = requests.get(
+    # Get existing release by tag name
+    existing_release_response = requests.get(
         f"https://api.github.com/repos/{repository}/releases/tags/{tag_name}",
         headers={"Authorization": f"token {github_token}"}
-    ).json()
-
+    )
+    
+    existing_release = existing_release_response.json()
+    
     if "id" in existing_release:
         existing_release_id = existing_release["id"]
         logging.info(f"Updating existing release: {existing_release_id}")
+        
+        # Check and delete existing asset if it has the same name
+        existing_assets_response = requests.get(
+            f"https://api.github.com/repos/{repository}/releases/{existing_release_id}/assets",
+            headers={"Authorization": f"token {github_token}"}
+        )
+        existing_assets = existing_assets_response.json()
+
+        for asset in existing_assets:
+            if asset['name'] == os.path.basename(apk_file_path):
+                delete_asset_response = requests.delete(
+                    f"https://api.github.com/repos/{repository}/releases/assets/{asset['id']}",
+                    headers={"Authorization": f"token {github_token}"}
+                )
+                if delete_asset_response.status_code == 204:
+                    logging.info(f"Successfully deleted existing asset: {asset['name']}")
+                else:
+                    logging.error(f"Failed to delete existing asset: {asset['name']} - {delete_asset_response.json()}")
+        
     else:
+        # Create new release if it doesn't exist
         release_body = f"""
 # Release Notes
 
@@ -286,6 +309,7 @@ def create_github_release(app_name, download_files, apk_file_path):
 
         existing_release_id = new_release["id"]
 
+    # Upload new APK file
     upload_url_apk = f"https://uploads.github.com/repos/{repository}/releases/{existing_release_id}/assets?name={os.path.basename(apk_file_path)}"
     with open(apk_file_path, 'rb') as apk_file:
         apk_file_content = apk_file.read()
