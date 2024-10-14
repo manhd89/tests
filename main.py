@@ -59,7 +59,7 @@ try:
     # Lọc và tải xuống các asset phù hợp
     for link in asset_links:
         asset_url = link.get_attribute('href')
-        if asset_url.endswith('.jar') or not asset_url.endswith('.asc') and 'source' not in asset_url.lower():
+        if not asset_url.endswith('.asc') and 'source' not in asset_url.lower():
             # Kiểm tra mã phản hồi của asset
             response = requests.head(asset_url, allow_redirects=True)
             if response.status_code == 200:
