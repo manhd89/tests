@@ -429,7 +429,7 @@ def extract_version_from_tag(tag: str) -> str:
 # Function to compare the versions of revanced-patches repository and the current repository
 def compare_repository_versions(repo_patches: str):
     version_patches = get_latest_release_version(repo_patches)
-    version_current = get_latest_release_version(os.getenv('GITHUB_REPOSITORY'))  # Current repo
+    version_current = get_latest_release_version(github_token)  # Current repository
     
     logging.info(f"Version of {repo_patches}: {version_patches}")
     logging.info(f"Version of current repository: {version_current}")
