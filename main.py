@@ -7,7 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import logging
 
-# Cấu hình logging để ghi chi tiết hơn
+# Cấu hình logging
 logging.basicConfig(
     level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S'
 )
@@ -45,9 +45,9 @@ time.sleep(3)
 try:
     logging.info("Looking for the latest release or prerelease section...")
 
-    # Tìm và click vào phần tử release mới nhất hoặc prerelease bằng XPath hoặc class phù hợp
+    # Tìm và click vào phần tử release mới nhất hoặc prerelease bằng cách sử dụng các selector mới
     latest_release = WebDriverWait(driver, 15).until(
-        EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'release') and .//span[contains(@class, 'Label--success') or contains(text(), 'prerelease')]]"))
+        EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'Box-body')]//span[contains(@class, 'Label') and contains(text(), 'Pre-release')]//ancestor::div[contains(@class, 'Box-body')]//a"))
     )
     latest_release.click()
     logging.info("Clicked on the latest release or prerelease.")
