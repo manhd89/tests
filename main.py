@@ -41,18 +41,21 @@ time.sleep(5)  # Tăng thời gian chờ để đảm bảo trang tải
 try:
     logging.info("Looking for the latest asset link...")
 
-    # Xác định asset đầu tiên trong danh sách tải về (có thể điều chỉnh XPath nếu cần chọn asset cụ thể)
-    asset_link = WebDriverWait(driver, 15).until(
-        EC.presence_of_element_located((By.XPATH, "//div[@class='Box-body']//a[contains(@href, '/download/')]"))
+    # Xác định tất cả các asset có định dạng tệp .jar hoặc các loại tệp bạn muốn
+    asset_links = WebDriverWait(driver, 15).until(
+        EC.presence_of_all_elements_located((By.XPATH, "//a[contains(@href, '/releases/download/') and contains(@href, '.jar')]"))
     )
 
-    # Lấy URL của asset
-    asset_url = asset_link.get_attribute('href')
-    logging.info(f"Asset found: {asset_url}")
+    # Lấy URL của asset đầu tiên trong danh sách
+    if asset_links:
+        asset_url = asset_links[0].get_attribute('href')  # Lấy liên kết của asset đầu tiên
+        logging.info(f"Asset found: {asset_url}")
 
-    # Điều hướng đến URL của asset để bắt đầu tải xuống
-    driver.get(asset_url)
-    logging.info("Asset download initiated.")
+        # Điều hướng đến URL của asset để bắt đầu tải xuống
+        driver.get(asset_url)
+        logging.info("Asset download initiated.")
+    else:
+        logging.error("No asset links found.")
 
     # Chờ cho trang tải và kiểm tra
     time.sleep(5)
