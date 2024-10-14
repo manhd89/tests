@@ -2,6 +2,7 @@ import logging
 import os
 import json
 import subprocess
+import requests  # Importing requests here
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -9,6 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from bs4 import BeautifulSoup  # Make sure to import BeautifulSoup as well
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -140,14 +142,19 @@ def find_files(directory, file_prefix, file_suffix):
             for file in files if file.startswith(file_prefix) and file.endswith(file_suffix)]
 
 # Check for necessary files and run the patch command
-cli_jar = find_files('.', 'revanced-cli', '.jar')[0]
-patches_jar = find_files('.', 'revanced-patches', '.jar')[0]
-integrations_apk = find_files('.', 'revanced-integrations', '.apk')[0]
-input_apk = download_uptodown()
+cli_jar_files = find_files('.', 'revanced-cli', '.jar')
+patches_jar_files = find_files('.', 'revanced-patches', '.jar')
+integrations_apk_files = find_files('.', 'revanced-integrations', '.apk')
 
-if input_apk:
-    version = input_apk.split('-v')[-1].split('.apk')[0]  # Extract version from APK filename
-    logging.info(f"Running {cli_jar} with patches and integrations...")
-    run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
+if cli_jar_files and patches_jar_files and integrations_apk_files:
+    cli_jar = cli_jar_files[0]
+    patches_jar = patches_jar_files[0]
+    integrations_apk = integrations_apk_files[0]
+    input_apk = download_uptodown()
+
+    if input_apk:
+        version = input_apk.split('-v')[-1].split('.apk')[0]  # Extract version from APK filename
+        logging.info(f"Running {cli_jar} with patches and integrations...")
+        run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
 else:
-    logging.error("Failed to download the APK from Uptodown.")
+    logging.error("Required files not found (revanced-cli, revanced-patches, revanced-integrations).")
