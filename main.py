@@ -95,7 +95,7 @@ def download_resource(url: str, filename: str) -> str:
         return None
 
 # Main function to download APK from Uptodown based on patches.json versions
-def download_uptodown():
+def get_latest_version_from_patches():
     with open("./patches.json", "r") as patches_file:
         patches = json.load(patches_file)
 
@@ -114,22 +114,10 @@ def download_uptodown():
                             map(str.strip, package["versions"])
                         )
                         
-        version = sorted(versions, reverse=True)[0]  # Use the latest version
-        download_link = get_download_link(version)
-        filename = f"youtube-v{version}.apk"
-        
-        return download_resource(download_link, filename)
+        latest_version = sorted(versions, reverse=True)[0]  # Use the latest version
+        return latest_version
 
-# Function to find required files (CLI, patches, integrations)
-def find_files(directory, file_prefix, file_suffix):
-    files_found = []
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.startswith(file_prefix) and file.endswith(file_suffix):
-                files_found.append(os.path.join(root, file))
-    return files_found
-
-# Function to run the Java command
+# Function to run the Java command and print each line
 def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version):
     output_apk = f'youtube-revanced-v{version}.apk'
     
@@ -141,11 +129,18 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
         '-o', output_apk        # Output APK
     ]
     
-    try:
-        result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        logging.info("Output: %s", result.stdout.decode())
-    except subprocess.CalledProcessError as e:
-        logging.error("Error: %s", e.stderr.decode())
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    
+    for line in process.stdout:
+        logging.info(line.strip())  # Log each line of output in real-time
+    
+    process.stdout.close()
+    process.wait()
+    
+    if process.returncode == 0:
+        logging.info(f"Successfully patched APK to {output_apk}")
+    else:
+        logging.error(f"Error occurred during patching process with return code: {process.returncode}")
 
 # Download ReVanced assets from GitHub
 def download_assets_from_repo(release_url):
@@ -186,24 +181,15 @@ repositories = [
 for repo in repositories:
     download_assets_from_repo(repo)
 
-# Directory containing the files
-directory = '.'
+# Main execution
+latest_version = get_latest_version_from_patches()  # Get version from patches.json
+download_link = get_download_link(latest_version)  # Download APK based on version
+input_apk = download_resource(download_link, f"youtube-v{latest_version}.apk")  # Download the APK
 
-# Find necessary files
-cli_jar_files = find_files(directory, 'revanced-cli', '.jar')
-patches_jar_files = find_files(directory, 'revanced-patches', '.jar')
-integrations_apk_files = find_files(directory, 'revanced-integrations', '.apk')
+if input_apk:
+    logging.info(f"Running patch process for YouTube v{latest_version}...")
 
-# Check if all necessary files are found and proceed to patch the APK
-if cli_jar_files and patches_jar_files and integrations_apk_files:
-    cli_jar = cli_jar_files[0]  # First found file
-    patches_jar = patches_jar_files[0]  # First found file
-    integrations_apk = integrations_apk_files[0]  # First found file
-
-    input_apk = download_uptodown()  # Download APK from Uptodown
-    if input_apk:
-        version = input_apk.split('-v')[-1].split('.apk')[0]  # Extract version from APK filename
-        logging.info(f"Running {cli_jar} with patches and integrations...")
-        run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
+    # Run the patching process with the files directly
+    run_java_command('revanced-cli.jar', 'revanced-patches.jar', 'revanced-integrations.apk', input_apk, latest_version)
 else:
-    logging.error("Required files not found (revanced-cli, revanced-patches, revanced-integrations).")
+    logging.error("Failed to download the YouTube APK.")
