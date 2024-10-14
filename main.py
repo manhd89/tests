@@ -1,16 +1,16 @@
 import logging
-import os
-import json
+import requests
 import subprocess
-import requests  # Importing requests here
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from bs4 import BeautifulSoup  # Make sure to import BeautifulSoup as well
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
+from bs4 import BeautifulSoup
+import os
+import json
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -20,36 +20,53 @@ chrome_driver_path = "/usr/bin/chromedriver"
 
 # Create Chrome driver with headless options
 def create_chrome_driver():
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("user-agent=Mozilla/5.0 (Android 13; Mobile; rv:125.0) Gecko/125.0 Firefox/125.0")
-    return webdriver.Chrome(service=Service(chrome_driver_path), options=options)
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument(
+        f"user-agent=Mozilla/5.0 (Android 13; Mobile; rv:125.0) Gecko/125.0 Firefox/125.0"
+    )
+    service = Service(chrome_driver_path)
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    return driver
 
 # Click on 'See more' button if necessary
 def click_see_more(driver):
     try:
-        driver.find_element(By.ID, "button-list-more").click()
+        see_more_button = driver.find_element(By.ID, "button-list-more")
+        if see_more_button:
+            see_more_button.click()
     except NoSuchElementException:
         pass
 
 # Get download link for a specific version from Uptodown
 def get_download_link(version: str) -> str:
+    url = "https://youtube.en.uptodown.com/android/versions"
     driver = create_chrome_driver()
-    driver.get("https://youtube.en.uptodown.com/android/versions")
+    driver.get(url)
+    soup = BeautifulSoup(driver.page_source, "html.parser")
 
     while True:
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-        for div in soup.find_all("div", {"data-url": True}):
-            if div.find("span", class_="version").text.strip() == version:
-                driver.get(div["data-url"])
-                download_button = BeautifulSoup(driver.page_source, "html.parser").find('button', {'id': 'detail-download-button'})
-                if download_button and (data_url := download_button.get('data-url')):
-                    driver.quit()
-                    return f"https://dw.uptodown.com/dwn/{data_url}"
+        divs = soup.find_all("div", {"data-url": True})
+        for div in divs:
+            version_span = div.find("span", class_="version")
+            if version_span and version_span.text.strip() == version:
+                dl_url = div["data-url"]
+                driver.get(dl_url)
 
+                # Parse the download page for the actual download link
+                soup = BeautifulSoup(driver.page_source, "html.parser")
+                download_button = soup.find('button', {'id': 'detail-download-button'})
+                if download_button and download_button.get('data-url'):
+                    data_url = download_button.get('data-url')
+                    full_url = f"https://dw.uptodown.com/dwn/{data_url}"
+                    driver.quit()
+                    return full_url
+
+        # If the "See more" button is available, click to load more versions
         click_see_more(driver)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
 
     driver.quit()
     return None
@@ -61,26 +78,31 @@ def download_resource(url: str, filename: str) -> str:
         return None
 
     filepath = os.path.join("./", filename)
-    response = requests.get(url)  # Assuming requests is imported
+    
+    # Add User-Agent header
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Android 13; Mobile; rv:125.0) Gecko/125.0 Firefox/125.0'
+    }
+    
+    response = requests.get(url, headers=headers)  # Pass headers with request
     if response.status_code == 200:
         with open(filepath, 'wb') as apk_file:
             apk_file.write(response.content)
         logging.info(f"Downloaded {filename} successfully.")
         return filepath
-    logging.error(f"Failed to download APK. Status code: {response.status_code}")
-    return None
+    else:
+        logging.error(f"Failed to download APK. Status code: {response.status_code}")
+        return None
 
 # Main function to download APK from Uptodown based on patches.json versions
-# Main function to download APK from Uptodown based on patches.json versions
 def download_uptodown():
-    with open("./patches.json") as patches_file:
+    with open("./patches.json", "r") as patches_file:
         patches = json.load(patches_file)
 
         versions = set()
         for patch in patches:
-            # Ensure compatiblePackages is a list before iterating
-            compatible_packages = patch.get("compatiblePackages", [])
-            if isinstance(compatible_packages, list):
+            compatible_packages = patch.get("compatiblePackages")
+            if compatible_packages and isinstance(compatible_packages, list):
                 for package in compatible_packages:
                     if (
                         package.get("name") == "com.google.android.youtube" and
@@ -88,24 +110,35 @@ def download_uptodown():
                         isinstance(package["versions"], list) and
                         package["versions"]
                     ):
-                        versions.update(map(str.strip, package["versions"]))
+                        versions.update(
+                            map(str.strip, package["versions"])
+                        )
                         
-        if versions:
-            latest_version = sorted(versions, reverse=True)[0]
-            download_link = get_download_link(latest_version)
-            return download_resource(download_link, f"youtube-v{latest_version}.apk")
+        version = sorted(versions, reverse=True)[0]  # Use the latest version
+        download_link = get_download_link(version)
+        filename = f"youtube-v{version}.apk"
+        
+        return download_resource(download_link, filename)
 
-    logging.error("No compatible versions found in patches.json.")
-    return None
+# Function to find required files (CLI, patches, integrations)
+def find_files(directory, file_prefix, file_suffix):
+    files_found = []
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.startswith(file_prefix) and file.endswith(file_suffix):
+                files_found.append(os.path.join(root, file))
+    return files_found
 
 # Function to run the Java command
 def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version):
+    output_apk = f'youtube-revanced-v{version}.apk'
+    
     command = [
         'java', '-jar', cli_jar, 'patch',
-        '-b', patches_jar,
-        '-m', integrations_apk,
-        input_apk,
-        '-o', f'youtube-revanced-v{version}.apk'
+        '-b', patches_jar,      # ReVanced patches
+        '-m', integrations_apk, # ReVanced integrations APK
+        input_apk,              # Original YouTube APK
+        '-o', output_apk        # Output APK
     ]
     
     try:
@@ -122,15 +155,21 @@ def download_assets_from_repo(release_url):
     try:
         WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, "repo-content-pjax-container")))
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        asset_links = WebDriverWait(driver, 15).until(EC.presence_of_all_elements_located((By.XPATH, "//a[contains(@href, '/releases/download/')]")))
-        
+
+        asset_links = WebDriverWait(driver, 15).until(
+            EC.presence_of_all_elements_located((By.XPATH, "//a[contains(@href, '/releases/download/')]"))
+        )
+
         for link in asset_links:
             asset_url = link.get_attribute('href')
             if not asset_url.endswith('.asc'):
-                response = requests.get(asset_url, allow_redirects=True)
-                with open(asset_url.split('/')[-1], 'wb') as file:
-                    file.write(response.content)
-                logging.info(f"Downloaded {asset_url.split('/')[-1]} successfully.")
+                response = requests.head(asset_url, allow_redirects=True)
+                if response.status_code == 200:
+                    download_response = requests.get(asset_url, allow_redirects=True)
+                    filename = asset_url.split('/')[-1]
+                    with open(filename, 'wb') as file:
+                        file.write(download_response.content)
+                    logging.info(f"Downloaded {filename} successfully.")
     except Exception as e:
         logging.error(f"Error while downloading from {release_url}: {e}")
     finally:
@@ -147,23 +186,21 @@ repositories = [
 for repo in repositories:
     download_assets_from_repo(repo)
 
+# Directory containing the files
+directory = '.'
+
 # Find necessary files
-def find_files(directory, file_prefix, file_suffix):
-    return [os.path.join(root, file) 
-            for root, _, files in os.walk(directory) 
-            for file in files if file.startswith(file_prefix) and file.endswith(file_suffix)]
+cli_jar_files = find_files(directory, 'revanced-cli', '.jar')
+patches_jar_files = find_files(directory, 'revanced-patches', '.jar')
+integrations_apk_files = find_files(directory, 'revanced-integrations', '.apk')
 
-# Check for necessary files and run the patch command
-cli_jar_files = find_files('.', 'revanced-cli', '.jar')
-patches_jar_files = find_files('.', 'revanced-patches', '.jar')
-integrations_apk_files = find_files('.', 'revanced-integrations', '.apk')
-
+# Check if all necessary files are found and proceed to patch the APK
 if cli_jar_files and patches_jar_files and integrations_apk_files:
-    cli_jar = cli_jar_files[0]
-    patches_jar = patches_jar_files[0]
-    integrations_apk = integrations_apk_files[0]
-    input_apk = download_uptodown()
+    cli_jar = cli_jar_files[0]  # First found file
+    patches_jar = patches_jar_files[0]  # First found file
+    integrations_apk = integrations_apk_files[0]  # First found file
 
+    input_apk = download_uptodown()  # Download APK from Uptodown
     if input_apk:
         version = input_apk.split('-v')[-1].split('.apk')[0]  # Extract version from APK filename
         logging.info(f"Running {cli_jar} with patches and integrations...")
