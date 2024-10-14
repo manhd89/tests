@@ -94,6 +94,24 @@ def download_resource(url: str, filename: str) -> str:
         logging.error(f"Failed to download APK. Status code: {response.status_code}")
         return None
 
+# Function to run the Java command
+def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version):
+    output_apk = f'youtube-revanced-v{version}.apk'
+    
+    command = [
+        'java', '-jar', cli_jar, 'patch',
+        '-b', patches_jar,      # ReVanced patches
+        '-m', integrations_apk, # ReVanced integrations APK
+        input_apk,              # Original YouTube APK
+        '-o', output_apk        # Output APK
+    ]
+    
+    try:
+        result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        logging.info("Output: %s", result.stdout.decode())
+    except subprocess.CalledProcessError as e:
+        logging.error("Error: %s", e.stderr.decode())
+
 # Main function to download APK from Uptodown based on patches.json versions
 def download_uptodown():
     with open("./patches.json", "r") as patches_file:
@@ -184,21 +202,3 @@ if cli_jar_files and patches_jar_files and integrations_apk_files:
         run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
 else:
     logging.error("Required files not found (revanced-cli, revanced-patches, revanced-integrations).")
-
-# Function to run the Java command
-def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version):
-    output_apk = f'youtube-revanced-v{version}.apk'
-    
-    command = [
-        'java', '-jar', cli_jar, 'patch',
-        '-b', patches_jar,      # ReVanced patches
-        '-m', integrations_apk, # ReVanced integrations APK
-        input_apk,              # Original YouTube APK
-        '-o', output_apk        # Output APK
-    ]
-    
-    try:
-        result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        logging.info("Output: %s", result.stdout.decode())
-    except subprocess.CalledProcessError as e:
-        logging.error("Error: %s", e.stderr.decode())
