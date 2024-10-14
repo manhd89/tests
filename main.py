@@ -7,7 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import logging
 
-# Cấu hình logging để ghi chi tiết hơn
+# Cấu hình logging
 logging.basicConfig(
     level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S'
 )
@@ -17,9 +17,9 @@ chrome_driver_path = "/usr/bin/chromedriver"
 
 # Cấu hình các tùy chọn của Chrome
 chrome_options = Options()
-chrome_options.add_argument("--headless")  # Chạy ở chế độ không giao diện
-chrome_options.add_argument("--no-sandbox")  # Không dùng sandbox
-chrome_options.add_argument("--disable-dev-shm-usage")  # Tắt shared memory
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
 
 # Khởi tạo trình điều khiển
 service = Service(chrome_driver_path)
@@ -30,18 +30,13 @@ release_url = "https://github.com/ReVanced/revanced-patches/releases"
 driver.get(release_url)
 
 # Chờ trang tải hoàn toàn
-time.sleep(5)  # Tăng thời gian chờ để đảm bảo trang tải
+time.sleep(5)  # Tăng thời gian chờ
 
 # Sử dụng WebDriverWait để tìm liên kết phiên bản mới nhất
 try:
-    logging.info("Looking for the latest release link...")
-    
-    # Xác định phần tử tải xuống bằng XPath
-    download_button = WebDriverWait(driver, 15).until(
+    download_button = WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.XPATH, "//a[contains(@href, '/ReVanced/revanced-patches/releases/download')]"))
     )
-    
-    # Nhấn vào liên kết để tải xuống
     download_button.click()
     logging.info("Navigated to the latest release successfully.")
 
@@ -53,4 +48,3 @@ except Exception as e:
 
 finally:
     driver.quit()
-    logging.info("Browser closed.")
