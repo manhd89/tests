@@ -6,12 +6,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from youtube import download_uptodown
+import os
+import subprocess
 
 # Cấu hình logging để ghi chi tiết hơn
-logging.basicConfig(
-    level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S'
-)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 # Đường dẫn đến ChromeDriver
 chrome_driver_path = "/usr/bin/chromedriver"
@@ -21,8 +20,6 @@ chrome_options = Options()
 chrome_options.add_argument("--headless")  # Chạy ở chế độ không giao diện
 chrome_options.add_argument("--no-sandbox")  # Không dùng sandbox
 chrome_options.add_argument("--disable-dev-shm-usage")  # Tắt shared memory
-
-# Thêm User-Agent
 chrome_options.add_argument(
     "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.5735.198 Safari/537.36"
 )
@@ -38,6 +35,7 @@ repositories = [
 service = Service(chrome_driver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
+# Hàm tải các asset từ repository
 def download_assets_from_repo(release_url):
     driver.get(release_url)
     
@@ -70,7 +68,6 @@ def download_assets_from_repo(release_url):
                 response = requests.head(asset_url, allow_redirects=True)
                 if response.status_code == 200:
                     logging.info(f"Downloading asset: {asset_url}")
-                    # Tiến hành tải xuống tệp với việc theo dõi chuyển hướng
                     download_response = requests.get(asset_url, allow_redirects=True)
                     if download_response.status_code == 200:
                         filename = asset_url.split('/')[-1]
@@ -92,16 +89,7 @@ for repo in repositories:
 driver.quit()
 logging.info("Browser closed.")
 
-import os
-import subprocess
-import logging
-
-# Cấu hình logging để ghi thông tin ra console
-logging.basicConfig(level=logging.INFO)
-
-input_apk = download_uptodown
-
-# Hàm để tìm các file theo tên trong thư mục hiện tại
+# Hàm tìm file trong thư mục
 def find_files(directory, file_prefix, file_suffix):
     files_found = []
     for root, dirs, files in os.walk(directory):
@@ -111,37 +99,35 @@ def find_files(directory, file_prefix, file_suffix):
     return files_found
 
 # Hàm để chạy lệnh Java với các tham số -b và -m
-def run_java_command(cli_jar, patches_jar, integrations_apk):
+def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, output_apk):
     command = [
         'java', '-jar', cli_jar, 'patch',
-        '-b', patches_jar,         # Thêm flag -b cho revanced-patches
-        '-m', integrations_apk,  # Thêm flag -m cho revanced-integrations
-        input_apk,
-        '-o', f'youtube-revanced-v{download_uptodown.version}.apk'
+        '-b', patches_jar, '-m', integrations_apk, input_apk,
+        '-o', output_apk
     ]
     try:
         result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        logging.info("Output: %s", result.stdout.decode())  # Sử dụng format string
+        logging.info("Output: %s", result.stdout.decode())
     except subprocess.CalledProcessError as e:
-        logging.error("Error: %s", e.stderr.decode())  # Sử dụng format string
+        logging.error("Error: %s", e.stderr.decode())
 
-# Thư mục chứa các file cần thiết
-directory = '.'  # Thay đổi thành thư mục bạn muốn tìm kiếm
-
-# Tìm file revanced-cli.jar
+# Tìm file CLI, patches và integrations
+directory = '.'
 cli_jar_files = find_files(directory, 'revanced-cli', '.jar')
-# Tìm file revanced-patches.jar
 patches_jar_files = find_files(directory, 'revanced-patches', '.jar')
-# Tìm file revanced-integrations.apk
 integrations_apk_files = find_files(directory, 'revanced-integrations', '.apk')
 
-# Kiểm tra và chạy lệnh nếu tất cả các file đều tồn tại
+# APK đầu vào và tên file đầu ra
+input_apk = 'input_apk_file.apk'  # Thay bằng đường dẫn đến file APK của bạn
+output_apk = 'youtube-revanced-vX.apk'  # Thay bằng tên file đầu ra
+
+# Kiểm tra và chạy lệnh nếu các file tồn tại
 if cli_jar_files and patches_jar_files and integrations_apk_files:
-    cli_jar = cli_jar_files[0]  # Chọn file đầu tiên được tìm thấy
-    patches_jar = patches_jar_files[0]  # Chọn file đầu tiên được tìm thấy
-    integrations_apk = integrations_apk_files[0]  # Chọn file đầu tiên được tìm thấy
+    cli_jar = cli_jar_files[0]
+    patches_jar = patches_jar_files[0]
+    integrations_apk = integrations_apk_files[0]
 
     logging.info(f'Running {cli_jar} with patches and integrations...')
-    run_java_command(cli_jar, patches_jar, integrations_apk)
+    run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, output_apk)
 else:
     logging.error("Không tìm thấy đủ file cần thiết (revanced-cli, revanced-patches, revanced-integrations).")
