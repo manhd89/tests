@@ -37,11 +37,22 @@ driver.get(release_url)
 # Chờ trang tải hoàn toàn
 time.sleep(5)  # Tăng thời gian chờ để đảm bảo trang tải
 
-# Sử dụng WebDriverWait để tìm liên kết tài sản mới nhất (asset)
-try:
-    logging.info("Looking for the latest asset link...")
+# Cuộn trang xuống để đảm bảo các phần tử hiển thị
+driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+time.sleep(3)
 
-    # Xác định tất cả các asset có định dạng tệp .jar hoặc các loại tệp bạn muốn
+# Sử dụng WebDriverWait để tìm và click vào phần tử "Assets" để hiển thị danh sách các assets
+try:
+    logging.info("Looking for the Assets section...")
+
+    # Tìm và click vào phần tử "summary" chứa Assets
+    assets_button = WebDriverWait(driver, 15).until(
+        EC.element_to_be_clickable((By.XPATH, "//summary[contains(@class, 'text-bold') and contains(text(), 'Assets')]"))
+    )
+    assets_button.click()
+    logging.info("Clicked on the Assets button.")
+
+    # Tìm tất cả các asset có định dạng tệp .jar hoặc các loại tệp bạn muốn
     asset_links = WebDriverWait(driver, 15).until(
         EC.presence_of_all_elements_located((By.XPATH, "//a[contains(@href, '/releases/download/') and contains(@href, '.jar')]"))
     )
