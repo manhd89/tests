@@ -41,16 +41,39 @@ time.sleep(5)  # Tăng thời gian chờ để đảm bảo trang tải
 driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 time.sleep(3)
 
-# Sử dụng WebDriverWait để tìm và click vào phần tử "Assets" để hiển thị danh sách các assets
+# Sử dụng WebDriverWait để tìm và nhấn vào phiên bản mới nhất hoặc prerelease
 try:
     logging.info("Looking for the latest release or prerelease section...")
 
-    # Tìm và click vào phần tử release mới nhất hoặc prerelease bằng cách sử dụng các selector mới
-    latest_release = WebDriverWait(driver, 15).until(
-        EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'Box-body')]//span[contains(@class, 'Label') and contains(text(), 'Pre-release')]//ancestor::div[contains(@class, 'Box-body')]//a"))
+    # Tìm tất cả các phần tử có thể là phiên bản latest hoặc prerelease
+    releases = WebDriverWait(driver, 15).until(
+        EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'Box-body')]"))
     )
-    latest_release.click()
-    logging.info("Clicked on the latest release or prerelease.")
+
+    latest_release = None
+    prerelease = None
+
+    for release in releases:
+        if "Pre-release" in release.text:
+            prerelease = release
+            break
+        elif "Latest" in release.text:
+            latest_release = release
+            break
+
+    # Nhấn vào phiên bản mới nhất nếu có, hoặc prerelease nếu không có latest
+    if latest_release:
+        latest_release_link = latest_release.find_element(By.TAG_NAME, 'a')
+        latest_release_link.click()
+        logging.info("Clicked on the latest release.")
+    elif prerelease:
+        prerelease_link = prerelease.find_element(By.TAG_NAME, 'a')
+        prerelease_link.click()
+        logging.info("Clicked on the prerelease.")
+    else:
+        logging.error("No latest or prerelease found.")
+        driver.quit()
+        exit()
 
     # Tìm và click vào phần tử "Assets" để hiển thị các assets
     assets_button = WebDriverWait(driver, 15).until(
