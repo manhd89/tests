@@ -426,15 +426,9 @@ def compare_repository_versions(repo_patches: str):
         logging.error("Could not retrieve version for one or both repositories, running build.")
         return False  # Run build if either repository fails to respond
 
-# Function to run the build process (mockup function)
-def run_build():
-    logging.info("Running build process...")
-    # Place your actual build process code here
 
 # Main execution
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    
+if __name__ == "__main__":    
     # Define the repository to compare
     repo_patches = "ReVanced/revanced-patches"
 
