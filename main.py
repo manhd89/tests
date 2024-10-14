@@ -21,6 +21,11 @@ chrome_options.add_argument("--headless")  # Chạy ở chế độ không giao 
 chrome_options.add_argument("--no-sandbox")  # Không dùng sandbox
 chrome_options.add_argument("--disable-dev-shm-usage")  # Tắt shared memory
 
+# Thêm User-Agent
+chrome_options.add_argument(
+    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.5735.198 Safari/537.36"
+)
+
 # Khởi tạo trình điều khiển
 service = Service(chrome_driver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
