@@ -327,7 +327,60 @@ def create_github_release(app_name, download_files, apk_file_path):
         logging.info(f"Successfully uploaded {apk_file_path} to GitHub release.")
     else:
         logging.error(f"Failed to upload {apk_file_path}. Status code: {response.status_code}")
-        
+
+# Function to run the build process
+def run_build():
+    logging.info("Running build process...")
+
+    # List of repositories to download assets from
+    repositories = [
+        "https://github.com/ReVanced/revanced-patches/releases/latest",
+        "https://github.com/ReVanced/revanced-cli/releases/latest",
+        "https://github.com/ReVanced/revanced-integrations/releases/latest"
+    ]
+
+    # Download the assets
+    all_downloaded_files = []
+    for repo in repositories:
+        downloaded_files = download_assets_from_repo(repo)
+        all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
+
+    # After downloading, find the necessary files
+    cli_jar_files = [f for f in all_downloaded_files if 'revanced-cli' in f and f.endswith('.jar')]
+    patches_jar_files = [f for f in all_downloaded_files if 'revanced-patches' in f and f.endswith('.jar')]
+    integrations_apk_files = [f for f in all_downloaded_files if 'revanced-integrations' in f and f.endswith('.apk')]
+
+    # Ensure we have the required files
+    if not cli_jar_files or not patches_jar_files or not integrations_apk_files:
+        logging.error("Failed to download necessary ReVanced files.")
+    else:
+        cli_jar = cli_jar_files[0]  # Get the first (and probably only) CLI JAR
+        patches_jar = patches_jar_files[0]  # Get the first patches JAR
+        integrations_apk = integrations_apk_files[0]  # Get the first integrations APK
+
+        # Download the YouTube APK
+        input_apk, version = download_uptodown()
+
+        if input_apk:
+            # Run the patching process
+            output_apk = run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
+            if output_apk:
+                logging.info(f"Successfully created the patched APK: {output_apk}")
+
+                # Prepare download files for the release
+                download_files = {
+                    "revanced-patches": patches_jar,
+                    "revanced-integrations": integrations_apk,
+                    "revanced-cli": cli_jar
+                }
+
+                # Create GitHub release
+                create_github_release("ReVanced", download_files, output_apk)
+            else:
+                logging.error("Failed to patch the APK.")
+        else:
+            logging.error("Failed to download the YouTube APK.")
+
 
 # Function to get the latest release version from a GitHub repository
 def get_latest_release_version(repo: str) -> str:
@@ -383,53 +436,4 @@ if __name__ == "__main__":
     skip_build = compare_repository_versions(repo_patches)
 
     if not skip_build:
-        logging.info("Running build process...")
-
-        # List of repositories to download assets from
-        repositories = [
-            "https://api.github.com/repos/ReVanced/revanced-patches/releases/latest",
-            "https://api.github.com/repos/ReVanced/revanced-cli/releases/latest",
-            "https://api.github.com/repos/ReVanced/revanced-integrations/releases/latest"
-        ]
-
-        # Download the assets
-        all_downloaded_files = []
-        for repo in repositories:
-            downloaded_files = download_assets_from_repo(repo)
-            all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
-
-        # After downloading, find the necessary files
-        cli_jar_files = [f for f in all_downloaded_files if 'revanced-cli' in f and f.endswith('.jar')]
-        patches_jar_files = [f for f in all_downloaded_files if 'revanced-patches' in f and f.endswith('.jar')]
-        integrations_apk_files = [f for f in all_downloaded_files if 'revanced-integrations' in f and f.endswith('.apk')]
-
-        # Ensure we have the required files
-        if not cli_jar_files or not patches_jar_files or not integrations_apk_files:
-            logging.error("Failed to download necessary ReVanced files.")
-        else:
-            cli_jar = cli_jar_files[0]  # Get the first (and probably only) CLI JAR
-            patches_jar = patches_jar_files[0]  # Get the first patches JAR
-            integrations_apk = integrations_apk_files[0]  # Get the first integrations APK
-
-            # Download the YouTube APK
-            input_apk, version = download_uptodown()
-
-            if input_apk:
-                # Run the patching process
-                output_apk = run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
-                if output_apk:
-                    logging.info(f"Successfully created the patched APK: {output_apk}")
-
-                    # Prepare download files for the release
-                    download_files = {
-                        "revanced-patches": patches_jar,
-                        "revanced-integrations": integrations_apk,
-                        "revanced-cli": cli_jar
-                    }
-
-                    # Create GitHub release
-                    create_github_release("ReVanced", download_files, output_apk)
-                else:
-                    logging.error("Failed to patch the APK.")
-            else:
-                logging.error("Failed to download the YouTube APK.")
+        run_build()  # Only run build if versions differ or repository doesn't respond
