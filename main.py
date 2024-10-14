@@ -343,14 +343,24 @@ def get_latest_release_version(repo: str) -> str:
         logging.error(f"Failed to fetch latest version from {repo}: {response.status_code}")
         return None
 
-# Function to get the version of the current repository (from environment variable)
-def get_current_repo_version() -> str:
-    return os.getenv('GITHUB_REF', '').split('/')[-1]  # Assuming GITHUB_REF holds the version tag
+# Function to get the latest release version of the current repository (not branch)
+def get_current_repo_release_version() -> str:
+    repo = os.getenv('GITHUB_REPOSITORY')  # Current repository from environment variable
+    url = f"https://api.github.com/repos/{repo}/releases/latest"
+    headers = {"Authorization": f"token {os.getenv('GITHUB_TOKEN')}"}
+    
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        latest_release = response.json()
+        return latest_release['tag_name']  # Extract tag_name (version) from the latest release
+    else:
+        logging.error(f"Failed to fetch latest version from current repository: {response.status_code}")
+        return None
 
 # Compare versions of revanced-patches repository and the current repository
 def compare_repository_versions(repo_patches: str):
     version_patches = get_latest_release_version(repo_patches)
-    version_current = get_current_repo_version()
+    version_current = get_current_repo_release_version()
 
     logging.info(f"Version of {repo_patches}: {version_patches}")
     logging.info(f"Version of current repository: {version_current}")
