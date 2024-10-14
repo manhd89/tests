@@ -30,6 +30,15 @@ class ColoredLevelFormatter(logging.Formatter):
         log_msg = super().format(record)
         colored_log_msg = f"{levelname_color}{log_msg}{reset_color}"
         return colored_log_msg
+
+# Setup Logging Level Color
+logging.getLogger().setLevel(logging.INFO)
+formatter = ColoredLevelFormatter("%(asctime)s %(message)s", datefmt='%Y-%m-%d %H:%M:%S')
+console = logging.StreamHandler()
+console.setFormatter(ColoredLevelFormatter("%(asctime)s %(message)s", datefmt='%Y-%m-%d %H:%M:%S'))
+logger = logging.getLogger()
+logger.addHandler(console)
+
 # Path to ChromeDriver
 chrome_driver_path = "/usr/bin/chromedriver"
 
