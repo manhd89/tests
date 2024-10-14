@@ -105,7 +105,7 @@ def find_jar_files(directory):
 
 # Hàm để chạy lệnh Java
 def run_java_command(jar_file):
-    command = ['java', '-jar', jar_file -h]  # Thay đổi lệnh nếu cần
+    command = ['java', '-jar', jar_file, '-h']  # Thay đổi lệnh nếu cần
     try:
         result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         logging.info("Output:", result.stdout.decode())
