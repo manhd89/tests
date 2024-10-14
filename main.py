@@ -119,16 +119,71 @@ def download_uptodown():
         filename = f"youtube-v{version}.apk"
         
         file_path = download_resource(download_link, filename)
-        return file_path, version
-        
-# Function to find required files (CLI, patches, integrations)
-def find_files(file_prefix, file_suffix):
-    files_found = []
-    for root, dirs, files in os.walk('./'):
-        for file in files:
-            if file.startswith(file_prefix) and file.endswith(file_suffix):
-                files_found.append(os.path.join(root, file))
-    return files_found
+        return file_path, version  # Return both the file path and version
+
+# Download ReVanced assets from GitHub and return the paths of the downloaded files
+def download_assets_from_repo(release_url):
+    driver = create_chrome_driver()
+    driver.get(release_url)
+    
+    downloaded_files = []
+    
+    try:
+        WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, "repo-content-pjax-container")))
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+        asset_links = WebDriverWait(driver, 15).until(
+            EC.presence_of_all_elements_located((By.XPATH, "//a[contains(@href, '/releases/download/')]"))
+        )
+
+        for link in asset_links:
+            asset_url = link.get_attribute('href')
+            if not asset_url.endswith('.asc'):  # Skip signature files
+                response = requests.head(asset_url, allow_redirects=True)
+                if response.status_code == 200:
+                    download_response = requests.get(asset_url, allow_redirects=True)
+                    filename = asset_url.split('/')[-1]
+                    with open(filename, 'wb') as file:
+                        file.write(download_response.content)
+                    logging.info(f"Downloaded {filename} successfully.")
+                    downloaded_files.append(filename)  # Store downloaded filename
+    except Exception as e:
+        logging.error(f"Error while downloading from {release_url}: {e}")
+    finally:
+        driver.quit()
+    
+    return downloaded_files  # Return the list of downloaded files
+
+# List of repositories to download assets from
+repositories = [
+    "https://github.com/ReVanced/revanced-patches/releases/latest",
+    "https://github.com/ReVanced/revanced-cli/releases/latest",
+    "https://github.com/ReVanced/revanced-integrations/releases/latest"
+]
+
+# Download the assets
+all_downloaded_files = []
+for repo in repositories:
+    downloaded_files = download_assets_from_repo(repo)
+    all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
+
+# After downloading, find the necessary files
+cli_jar_files = [f for f in all_downloaded_files if 'revanced-cli' in f and f.endswith('.jar')]
+patches_jar_files = [f for f in all_downloaded_files if 'revanced-patches' in f and f.endswith('.jar')]
+integrations_apk_files = [f for f in all_downloaded_files if 'revanced-integrations' in f and f.endswith('.apk')]
+
+# Check if all necessary files are found and proceed to patch the APK
+if cli_jar_files and patches_jar_files and integrations_apk_files:
+    cli_jar = cli_jar_files[0]  # First found file
+    patches_jar = patches_jar_files[0]  # First found file
+    integrations_apk = integrations_apk_files[0]  # First found file
+
+    input_apk, version = download_uptodown()  # Download APK from Uptodown and get the version
+    if input_apk:
+        logging.info(f"Running {cli_jar} with patches and integrations...")
+        run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
+else:
+    logging.error("Required files not found (revanced-cli, revanced-patches, revanced-integrations).")
 
 # Function to run the Java command
 def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version):
@@ -147,61 +202,3 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
         logging.info("Output: %s", result.stdout.decode())
     except subprocess.CalledProcessError as e:
         logging.error("Error: %s", e.stderr.decode())
-
-# Download ReVanced assets from GitHub
-def download_assets_from_repo(release_url):
-    driver = create_chrome_driver()
-    driver.get(release_url)
-    
-    try:
-        WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, "repo-content-pjax-container")))
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-
-        asset_links = WebDriverWait(driver, 15).until(
-            EC.presence_of_all_elements_located((By.XPATH, "//a[contains(@href, '/releases/download/')]"))
-        )
-
-        for link in asset_links:
-            asset_url = link.get_attribute('href')
-            if not asset_url.endswith('.asc'):
-                response = requests.head(asset_url, allow_redirects=True)
-                if response.status_code == 200:
-                    download_response = requests.get(asset_url, allow_redirects=True)
-                    filename = asset_url.split('/')[-1]
-                    with open(filename, 'wb') as file:
-                        file.write(download_response.content)
-                    logging.info(f"Downloaded {filename} successfully.")
-    except Exception as e:
-        logging.error(f"Error while downloading from {release_url}: {e}")
-    finally:
-        driver.quit()
-
-# List of repositories to download assets from
-repositories = [
-    "https://github.com/ReVanced/revanced-patches/releases/latest",
-    "https://github.com/ReVanced/revanced-cli/releases/latest",
-    "https://github.com/ReVanced/revanced-integrations/releases/latest"
-]
-
-# Download the assets
-for repo in repositories:
-    download_assets_from_repo(repo)
-
-
-# Find necessary files
-cli_jar_files = find_files('revanced-cli', '.jar')
-patches_jar_files = find_files('revanced-patches', '.jar')
-integrations_apk_files = find_files('revanced-integrations', '.apk')
-
-# Check if all necessary files are found and proceed to patch the APK
-if cli_jar_files and patches_jar_files and integrations_apk_files:
-    cli_jar = cli_jar_files[0]  # First found file
-    patches_jar = patches_jar_files[0]  # First found file
-    integrations_apk = integrations_apk_files[0]  # First found file
-
-    input_apk, version = download_uptodown()  # Download APK from Uptodown and get the version
-    if input_apk:
-        logging.info(f"Running {cli_jar} with patches and integrations...")
-        run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
-else:
-    logging.error("Required files not found (revanced-cli, revanced-patches, revanced-integrations).")
