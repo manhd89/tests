@@ -82,7 +82,7 @@ def download_resource(url: str, filename: str) -> str:
     return filepath
 
 # Main function to download app from Uptodown
-def download_uptodown(app_name: str) -> str:
+def download_uptodown():
     with open("./patches.json", "r") as patches_file:
         patches = json.load(patches_file)
 
