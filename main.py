@@ -107,11 +107,23 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
     ]
     
     try:
-        result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        logging.info("Output: %s", result.stdout.decode())
-    except subprocess.CalledProcessError as e:
-        logging.error("Error: %s", e.stderr.decode())
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        for line in iter(process.stdout.readline, b''):
+            logging.info(line.decode().strip())
+        
+        for line in iter(process.stderr.readline, b''):
+            logging.error(line.decode().strip())
+        
+        process.stdout.close()
+        process.stderr.close()
+        process.wait()
 
+        if process.returncode != 0:
+            logging.error(f"Process exited with return code: {process.returncode}")
+    except Exception as e:
+        logging.error(f"Exception occurred: {e}")
+        
 # Main function to download APK from Uptodown based on patches.json versions
 def download_uptodown():
     with open("./patches.json", "r") as patches_file:
