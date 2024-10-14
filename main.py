@@ -331,37 +331,34 @@ def create_github_release(app_name, download_files, apk_file_path):
 import requests
 import logging
 import os
+import re
 
 # Function to get the latest release version from a GitHub repository
 def get_latest_release_version(repo: str) -> str:
-    url = f"https://api.github.com/repos/{repo}/releases/latest"
-    response = requests.get(url)
-    if response.status_code == 200:
-        latest_release = response.json()
-        return latest_release['tag_name']  # Assuming tag_name holds the version
-    else:
-        logging.error(f"Failed to fetch latest version from {repo}: {response.status_code}")
-        return None
-
-# Function to get the latest release version of the current repository (not branch)
-def get_current_repo_release_version() -> str:
-    repo = os.getenv('GITHUB_REPOSITORY')  # Current repository from environment variable
     url = f"https://api.github.com/repos/{repo}/releases/latest"
     headers = {"Authorization": f"token {os.getenv('GITHUB_TOKEN')}"}
     
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         latest_release = response.json()
-        return latest_release['tag_name']  # Extract tag_name (version) from the latest release
+        tag_name = latest_release['tag_name']  # Extract tag name (version) from the latest release
+        return extract_version_from_tag(tag_name)  # Extract numerical version from tag
     else:
-        logging.error(f"Failed to fetch latest version from current repository: {response.status_code}")
+        logging.error(f"Failed to fetch latest release version from {repo}: {response.status_code}")
         return None
 
-# Compare versions of revanced-patches repository and the current repository
+# Extract numerical version from a tag (e.g., v4.16.0-release to 4.16.0)
+def extract_version_from_tag(tag: str) -> str:
+    match = re.search(r'(\d+\.\d+\.\d+)', tag)
+    if match:
+        return match.group(1)
+    return None
+
+# Function to compare the versions of revanced-patches repository and the current repository
 def compare_repository_versions(repo_patches: str):
     version_patches = get_latest_release_version(repo_patches)
-    version_current = get_current_repo_release_version()
-
+    version_current = get_latest_release_version(os.getenv('GITHUB_REPOSITORY'))  # Current repo
+    
     logging.info(f"Version of {repo_patches}: {version_patches}")
     logging.info(f"Version of current repository: {version_current}")
 
