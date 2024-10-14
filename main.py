@@ -71,13 +71,25 @@ def download_resource(url: str, filename: str) -> str:
     return None
 
 # Main function to download APK from Uptodown based on patches.json versions
+# Main function to download APK from Uptodown based on patches.json versions
 def download_uptodown():
     with open("./patches.json") as patches_file:
-        versions = {v.strip() for patch in json.load(patches_file) 
-                    for pkg in patch.get("compatiblePackages", []) 
-                    if pkg.get("name") == "com.google.android.youtube" 
-                    for v in pkg.get("versions", [])}
+        patches = json.load(patches_file)
 
+        versions = set()
+        for patch in patches:
+            # Ensure compatiblePackages is a list before iterating
+            compatible_packages = patch.get("compatiblePackages", [])
+            if isinstance(compatible_packages, list):
+                for package in compatible_packages:
+                    if (
+                        package.get("name") == "com.google.android.youtube" and
+                        package.get("versions") is not None and
+                        isinstance(package["versions"], list) and
+                        package["versions"]
+                    ):
+                        versions.update(map(str.strip, package["versions"]))
+                        
         if versions:
             latest_version = sorted(versions, reverse=True)[0]
             download_link = get_download_link(latest_version)
