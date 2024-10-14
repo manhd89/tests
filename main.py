@@ -96,6 +96,7 @@ def download_resource(url: str, filename: str) -> str:
 
 # Main function to download APK from Uptodown based on patches.json versions
 def download_uptodown():
+    global version
     with open("./patches.json", "r") as patches_file:
         patches = json.load(patches_file)
 
@@ -194,13 +195,10 @@ integrations_apk_files = find_files('revanced-integrations', '.apk')
 
 # Check if all necessary files are found and proceed to patch the APK
 if cli_jar_files and patches_jar_files and integrations_apk_files:
-    cli_jar = cli_jar_files[0]  # First found file
-    patches_jar = patches_jar_files[0]  # First found file
-    integrations_apk = integrations_apk_files[0]  # First found file
 
     input_apk = download_uptodown()  # Download APK from Uptodown
     if input_apk:
-        version = input_apk.split('-v')[-1].split('.apk')[0]  # Extract version from APK filename
+        version = download_uptodown.version()
         logging.info(f"Running {cli_jar} with patches and integrations...")
         run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
 else:
