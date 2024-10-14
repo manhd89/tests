@@ -97,10 +97,6 @@ def get_download_link(version: str) -> str:
 
 # Download the APK or resource
 def download_resource(url: str, filename: str) -> str:
-    if not url:
-        logging.error(f"Download URL is None. Cannot download {filename}.")
-        return None
-
     filepath = os.path.join("./", filename)
     
     # Add User-Agent header
@@ -431,18 +427,13 @@ def compare_repository_versions(repo_patches: str):
     version_patches = get_latest_release_version(repo_patches)
     version_current = get_latest_release_version(repository)  # Current repository
     
-    logging.info(f"Version of {repo_patches}: {version_patches}")
-    logging.info(f"Version of current repository: {version_current}")
-
     if version_patches and version_current:
         if version_patches == version_current:
-            logging.warning("Both repositories have the same version. Skipping build.")
+            logging.warning("Patched!!!Skipping build...")
             return True  # Skip build if versions are the same
         else:
-            logging.info(f"Versions differ: {repo_patches} = {version_patches}, Current repo = {version_current}")
             return False  # Run build if versions differ
     else:
-        logging.error("Could not retrieve version for one or both repositories, running build.")
         return False  # Run build if either repository fails to respond
 
 
