@@ -328,43 +328,46 @@ def create_github_release(app_name, download_files, apk_file_path):
     else:
         logging.error(f"Failed to upload {apk_file_path}. Status code: {response.status_code}")
 
-# Function to compare versions and decide whether to build or skip
-def should_build_or_skip(current_version: str, repo_release_version: str) -> bool:
-    if current_version == repo_release_version:
-        logging.info("Current version matches the release version. Skipping build.")
-        return False  # Skip build
-    else:
-        logging.info("Current version does not match the release version. Proceeding with build.")
-        return True  # Proceed with build
+import requests
+import logging
+import os
 
-# Function to get the latest version from the revanced-patches repository
-def get_latest_revanced_patches_version():
-    url = "https://api.github.com/repos/ReVanced/revanced-patches/releases/latest"
+# Function to get the latest release version from a GitHub repository
+def get_latest_release_version(repo: str) -> str:
+    url = f"https://api.github.com/repos/{repo}/releases/latest"
     response = requests.get(url)
     if response.status_code == 200:
         latest_release = response.json()
         return latest_release['tag_name']  # Assuming tag_name holds the version
     else:
-        logging.error(f"Failed to fetch latest version from revanced-patches: {response.status_code}")
+        logging.error(f"Failed to fetch latest version from {repo}: {response.status_code}")
         return None
 
-# In your main execution flow
-latest_patches_version = get_latest_revanced_patches_version()
+# Function to get the version of the current repository (from environment variable)
+def get_current_repo_version() -> str:
+    return os.getenv('GITHUB_REF', '').split('/')[-1]  # Assuming GITHUB_REF holds the version tag
 
-if latest_patches_version:
-    # Assume we have a function or method to get the current version of your local revanced-patches
-    current_version = "0.1.0"  # Replace with actual logic to fetch your current version
+# Compare versions of revanced-patches repository and the current repository
+def compare_repository_versions(repo_patches: str):
+    version_patches = get_latest_release_version(repo_patches)
+    version_current = get_current_repo_version()
 
-    if should_build_or_skip(current_version, latest_patches_version):
-        # Proceed to build APK
-        input_apk, version = download_uptodown()  # Download APK
-        if input_apk:
-            output_apk = run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
-            if output_apk:
-                logging.info(f"Successfully created the patched APK: {output_apk}")
-            else:
-                logging.error("Failed to patch the APK.")
+    logging.info(f"Version of {repo_patches}: {version_patches}")
+    logging.info(f"Version of current repository: {version_current}")
+
+    if version_patches and version_current:
+        if version_patches == version_current:
+            logging.info("Both repositories have the same version.")
+        else:
+            logging.info(f"Versions differ: {repo_patches} = {version_patches}, Current repo = {version_current}")
     else:
-        logging.info("APK build skipped. Using existing APK.")
-else:
-    logging.error("Unable to retrieve the latest version from revanced-patches.")
+        logging.error("Could not retrieve version for one or both repositories.")
+
+# Main execution
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    
+    # Define the repository to compare
+    repo_patches = "ReVanced/revanced-patches"
+
+    compare_repository_versions(repo_patches)
