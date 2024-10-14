@@ -61,11 +61,11 @@ try:
         asset_url = link.get_attribute('href')
         if asset_url.endswith('.jar') or not asset_url.endswith('.asc') and 'source' not in asset_url.lower():
             # Kiểm tra mã phản hồi của asset
-            response = requests.head(asset_url)
+            response = requests.head(asset_url, allow_redirects=True)
             if response.status_code == 200:
                 logging.info(f"Downloading asset: {asset_url}")
-                # Tiến hành tải xuống tệp
-                download_response = requests.get(asset_url)
+                # Tiến hành tải xuống tệp với việc theo dõi chuyển hướng
+                download_response = requests.get(asset_url, allow_redirects=True)
                 if download_response.status_code == 200:
                     filename = asset_url.split('/')[-1]
                     with open(filename, 'wb') as file:
