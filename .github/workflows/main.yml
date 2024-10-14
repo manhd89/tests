@@ -1,10 +1,10 @@
-name: Pyscript
+name: YouTube ReVanced
 on:
   push:
   workflow_dispatch:
 jobs:
   scraper:
-    name: PY SCRIPT
+    name: YouTube ReVanced
     permissions: write-all
     runs-on: ubuntu-latest
     env:
@@ -31,7 +31,7 @@ jobs:
       - name: Install Dependencies
         run: pip install -r requirements.txt
           
-      - name: Py test
+      - name: YouTube ReVanced
         run: python main.py
         
       - name: Delete workflow runs
