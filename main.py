@@ -11,7 +11,9 @@ from selenium.common.exceptions import NoSuchElementException
 from bs4 import BeautifulSoup
 import os
 import json
+import re
 
+# Environment variables for GitHub token and repository
 github_token = os.getenv('GITHUB_TOKEN')
 repository = os.getenv('GITHUB_REPOSITORY')
 
@@ -87,7 +89,7 @@ def download_resource(url: str, filename: str) -> str:
         'User-Agent': 'Mozilla/5.0 (Android 13; Mobile; rv:125.0) Gecko/125.0 Firefox/125.0'
     }
     
-    response = requests.get(url, headers=headers)  # Pass headers with request
+    response = requests.get(url, headers=headers)
     if response.status_code == 200:
         with open(filepath, 'wb') as apk_file:
             apk_file.write(response.content)
@@ -238,118 +240,23 @@ cli_jar_files = [f for f in all_downloaded_files if 'revanced-cli' in f and f.en
 patches_jar_files = [f for f in all_downloaded_files if 'revanced-patches' in f and f.endswith('.jar')]
 integrations_apk_files = [f for f in all_downloaded_files if 'revanced-integrations' in f and f.endswith('.apk')]
 
-# Convert hyphenated strings to title-cased strings
-def convert_title(text):
-    pattern = re.compile(r'\b([a-z0-9]+(?:-[a-z0-9]+)*)\b', re.IGNORECASE)
-    return pattern.sub(lambda match: match.group(1).replace('-', ' ').title(), text)
+# Ensure we have the required files
+if not cli_jar_files or not patches_jar_files or not integrations_apk_files:
+    logging.error("Failed to download necessary ReVanced files.")
+else:
+    cli_jar = cli_jar_files[0]  # Get the first (and probably only) CLI JAR
+    patches_jar = patches_jar_files[0]  # Get the first patches JAR
+    integrations_apk = integrations_apk_files[0]  # Get the first integrations APK
 
-# Extract version from the file name
-def extract_version(file_path):
-    if file_path:
-        base_name = os.path.splitext(os.path.basename(file_path))[0]
-        match = re.search(r'(\d+\.\d+\.\d+(-[a-z]+\.\d+)?(-release\d*)?)', base_name)
-        if match:
-            return match.group(1)
-    return 'unknown'
+    # Download the YouTube APK
+    input_apk, version = download_uptodown()
 
-# Create GitHub release function
-def create_github_release(app_name, source, download_files, apk_file_path):
-    source_path = f'./sources/{source}.json'
-    with open(source_path, 'r') as json_file:
-        info = json.load(json_file)
-
-    name = info[0].get("name", "")
-
-    patch_file_path = download_files["revanced-patches"]
-    integrations_file_path = download_files["revanced-integrations"]
-    cli_file_path = download_files["revanced-cli"]
-
-    patchver = extract_version(patch_file_path)
-    integrationsver = extract_version(integrations_file_path)
-    cliver = extract_version(cli_file_path)
-    tag_name = f"{name}-v{patchver}"
-
-    if not apk_file_path:
-        logging.error("APK file not found, skipping release.")
-        return
-
-    existing_release = requests.get(
-        f"https://api.github.com/repos/{repository}/releases/tags/{tag_name}",
-        headers={"Authorization": f"token {github_token}"}
-    ).json()
-
-    if "id" in existing_release:
-        existing_release_id = existing_release["id"]
-        logging.info(f"Updating existing release: {existing_release_id}")
-    else:
-        release_body = f"""
-# Release Notes
-
-## Build Tools:
-- **ReVanced Patches:** v{patchver}
-- **ReVanced Integrations:** v{integrationsver}
-- **ReVanced CLI:** v{cliver}
-
-## Note:
-**ReVanced GmsCore** is **necessary** to work. 
-- Please **download** it from [HERE](https://github.com/revanced/gmscore/releases/latest).
-        """
-        release_name = f"{convert_title(name)} v{patchver}"
-
-        release_data = {
-            "tag_name": tag_name,
-            "target_commitish": "main",
-            "name": release_name,
-            "body": release_body
-        }
-        new_release = requests.post(
-            f"https://api.github.com/repos/{repository}/releases",
-            headers={
-                "Authorization": f"token {github_token}",
-                "Content-Type": "application/json"
-            },
-            data=json.dumps(release_data)
-        ).json()
-
-        existing_release_id = new_release["id"]
-
-    upload_url_apk = f"https://uploads.github.com/repos/{repository}/releases/{existing_release_id}/assets?name={os.path.basename(apk_file_path)}"
-    with open(apk_file_path, 'rb') as apk_file:
-        apk_file_content = apk_file.read()
-
-    response = requests.post(
-        upload_url_apk,
-        headers={
-            "Authorization": f"token {github_token}",
-            "Content-Type": "application/vnd.android.package-archive"
-        },
-        data=apk_file_content
-    )
-
-    if response.status_code == 201:
-        logging.info(f"Successfully uploaded {apk_file_path} to GitHub release.")
-    else:
-        logging.error(f"Failed to upload {apk_file_path}. Status code: {response.status_code}")
-
-# Main logic to download and patch APK
-if cli_jar_files and patches_jar_files and integrations_apk_files:
-    cli_jar = cli_jar_files[0]  # First found file
-    patches_jar = patches_jar_files[0]  # First found file
-    integrations_apk = integrations_apk_files[0]  # First found file
-
-    input_apk, version = download_uptodown()  # Download APK from Uptodown and get the version
     if input_apk:
+        # Run the patching process
         output_apk = run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
         if output_apk:
-            logging.info(f"Running create_github_release with {output_apk}.")
-            
-            # Prepare download files for the release
-            download_files = {
-                "revanced-patches": patches_jar,
-                "revanced-integrations": integrations_apk,
-                "revanced-cli": cli_jar
-            }
-            
-            create_github_release("ReVanced", "revanced-patches", download_files, output_apk)
-else:
-    logging.error("Required files not found (revanced-cli, revanced-patches, revanced-integrations).")
+            logging.info(f"Successfully created the patched APK: {output_apk}")
+        else:
+            logging.error("Failed to patch the APK.")
+    else:
+        logging.error("Failed to download the YouTube APK.")
