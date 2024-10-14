@@ -2,47 +2,43 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import time
 
-# Đường dẫn đến ChromeDriver (được cài đặt trên môi trường Ubuntu của GitHub Actions)
+# Đường dẫn đến ChromeDriver
 chrome_driver_path = "/usr/bin/chromedriver"
 
-# Thiết lập các tùy chọn của Chrome
+# Cấu hình các tùy chọn của Chrome
 chrome_options = Options()
-chrome_options.add_argument("--headless")  # Chế độ không hiển thị
+chrome_options.add_argument("--headless")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 
-# Tạo dịch vụ ChromeDriver
+# Khởi tạo trình điều khiển
 service = Service(chrome_driver_path)
-
-# Cấu hình thư mục tải xuống
-prefs = {"download.default_directory": "/tmp/downloads"}  # Đặt đường dẫn tải xuống
-chrome_options.add_experimental_option("prefs", prefs)
-
-# Khởi động trình duyệt với các tùy chọn
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
 # Truy cập trang phát hành GitHub
 release_url = "https://github.com/revanced/revanced-patches/releases"
 driver.get(release_url)
 
-# Chờ trang tải (tùy chỉnh thời gian nếu cần)
+# Chờ trang tải hoàn toàn (có thể chỉnh sửa thời gian)
 time.sleep(3)
 
-# Tìm và nhấn nút tải tệp (thay đổi XPATH nếu cần)
-download_button = driver.find_element(By.XPATH, "//a[contains(@href, 'releases/download')]")
-download_button.click()
+# Sử dụng WebDriverWait để chờ phần tử xuất hiện
+try:
+    download_button = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.XPATH, "//a[contains(@href, 'releases/download')]"))
+    )
+    download_button.click()
+    print("Download button clicked successfully.")
 
-# Chờ tệp tải về
-time.sleep(10)
+    # Chờ tệp tải về (tùy thuộc vào kích thước tệp)
+    time.sleep(10)
 
-# Đóng trình duyệt
-driver.quit()
+except Exception as e:
+    print(f"An error occurred: {e}")
 
-# Kiểm tra tệp đã tải về
-import os
-if os.path.exists("/tmp/downloads/filename"):
-    print("File downloaded successfully.")
-else:
-    print("Failed to download file.")
+finally:
+    driver.quit()
