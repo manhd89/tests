@@ -123,7 +123,7 @@ def download_uptodown():
 # Function to find required files (CLI, patches, integrations)
 def find_files(file_prefix, file_suffix):
     files_found = []
-    for root, dirs, files in os.walk(./):
+    for root, dirs, files in os.walk('./'):
         for file in files:
             if file.startswith(file_prefix) and file.endswith(file_suffix):
                 files_found.append(os.path.join(root, file))
