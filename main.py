@@ -7,7 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import logging
 
-# Cấu hình logging
+# Cấu hình logging để ghi chi tiết hơn
 logging.basicConfig(
     level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S'
 )
@@ -17,9 +17,9 @@ chrome_driver_path = "/usr/bin/chromedriver"
 
 # Cấu hình các tùy chọn của Chrome
 chrome_options = Options()
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--headless")  # Chạy ở chế độ không giao diện
+chrome_options.add_argument("--no-sandbox")  # Không dùng sandbox
+chrome_options.add_argument("--disable-dev-shm-usage")  # Tắt shared memory
 
 # Khởi tạo trình điều khiển
 service = Service(chrome_driver_path)
@@ -30,15 +30,24 @@ release_url = "https://github.com/ReVanced/revanced-patches/releases"
 driver.get(release_url)
 
 # Chờ trang tải hoàn toàn
-time.sleep(5)  # Tăng thời gian chờ
+time.sleep(5)  # Tăng thời gian chờ để đảm bảo trang tải
 
-# Sử dụng WebDriverWait để tìm liên kết phiên bản mới nhất
+# Sử dụng WebDriverWait để tìm liên kết tài sản mới nhất (asset)
 try:
-    download_button = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.XPATH, "//a[contains(@href, '/ReVanced/revanced-patches/releases/download')]"))
+    logging.info("Looking for the latest asset link...")
+
+    # Xác định asset đầu tiên trong danh sách tải về (có thể điều chỉnh XPath nếu cần chọn asset cụ thể)
+    asset_link = WebDriverWait(driver, 15).until(
+        EC.presence_of_element_located((By.XPATH, "//div[@class='Box-body']//a[contains(@href, '/download/')]"))
     )
-    download_button.click()
-    logging.info("Navigated to the latest release successfully.")
+
+    # Lấy URL của asset
+    asset_url = asset_link.get_attribute('href')
+    logging.info(f"Asset found: {asset_url}")
+
+    # Điều hướng đến URL của asset để bắt đầu tải xuống
+    driver.get(asset_url)
+    logging.info("Asset download initiated.")
 
     # Chờ cho trang tải và kiểm tra
     time.sleep(5)
@@ -48,3 +57,4 @@ except Exception as e:
 
 finally:
     driver.quit()
+    logging.info("Browser closed.")
