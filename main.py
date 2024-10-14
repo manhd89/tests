@@ -5,6 +5,11 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+import logging
+
+logging.basicConfig(
+    level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 # Đường dẫn đến ChromeDriver
 chrome_driver_path = "/usr/bin/chromedriver"
@@ -20,25 +25,25 @@ service = Service(chrome_driver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
 # Truy cập trang phát hành GitHub
-release_url = "https://github.com/revanced/revanced-patches/releases"
+release_url = "https://github.com/ReVanced/revanced-patches/releases"
 driver.get(release_url)
 
-# Chờ trang tải hoàn toàn (có thể chỉnh sửa thời gian)
+# Chờ trang tải hoàn toàn
 time.sleep(3)
 
-# Sử dụng WebDriverWait để chờ phần tử xuất hiện
+# Sử dụng WebDriverWait để tìm liên kết phiên bản mới nhất
 try:
     download_button = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.XPATH, "//a[contains(@href, 'releases/download')]"))
+        EC.presence_of_element_located((By.XPATH, "//span[contains(@class, 'Label--success')]/../preceding-sibling::span/a"))
     )
     download_button.click()
-    print("Download button clicked successfully.")
+    logging.info("Navigated to the latest release successfully.")
 
-    # Chờ tệp tải về (tùy thuộc vào kích thước tệp)
-    time.sleep(10)
+    # Chờ cho trang tải và kiểm tra
+    time.sleep(5)
 
 except Exception as e:
-    print(f"An error occurred: {e}")
+    logging.error(f"An error occurred: {e}")
 
 finally:
     driver.quit()
