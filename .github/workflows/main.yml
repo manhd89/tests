@@ -32,6 +32,13 @@ jobs:
       - name: Py test
         run: python main.py
 
+      - name: Generate release info
+        run: | 
+          echo "
+          **Patches Changelog:** :point_down:
+          [Revanced](https://github.com/revanced/revanced-patches/releases/latest)
+          "> ${{ github.workspace }}-CHANGELOG.txt
+
       - name: Release
         uses: softprops/action-gh-release@v0.1.15
         with:
