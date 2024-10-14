@@ -195,8 +195,11 @@ integrations_apk_files = find_files('revanced-integrations', '.apk')
 
 # Check if all necessary files are found and proceed to patch the APK
 if cli_jar_files and patches_jar_files and integrations_apk_files:
+    cli_jar = cli_jar_files[0]  # First found file
+    patches_jar = patches_jar_files[0]  # First found file
+    integrations_apk = integrations_apk_files[0]  # First found file
 
-    input_apk = download_uptodown()  # Download APK from Uptodown
+    input_apk, version = download_uptodown()  # Download APK from Uptodown and get the version
     if input_apk:
         logging.info(f"Running {cli_jar} with patches and integrations...")
         run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
