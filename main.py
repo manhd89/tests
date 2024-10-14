@@ -41,35 +41,49 @@ time.sleep(5)  # Tăng thời gian chờ để đảm bảo trang tải
 driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 time.sleep(3)
 
-# Sử dụng WebDriverWait để tìm và click vào phần tử "Assets" bằng ID để hiển thị danh sách các assets
+# Sử dụng WebDriverWait để tìm và click vào phần tử "Assets" để hiển thị danh sách các assets
 try:
-    logging.info("Looking for the Assets section...")
+    logging.info("Looking for the latest release or prerelease section...")
 
-    # Tìm và click vào phần tử "Assets" bằng ID (nếu có)
+    # Tìm và click vào phần tử release mới nhất hoặc prerelease bằng XPath hoặc class phù hợp
+    latest_release = WebDriverWait(driver, 15).until(
+        EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'release') and .//span[contains(@class, 'Label--success') or contains(text(), 'prerelease')]]"))
+    )
+    latest_release.click()
+    logging.info("Clicked on the latest release or prerelease.")
+
+    # Tìm và click vào phần tử "Assets" để hiển thị các assets
     assets_button = WebDriverWait(driver, 15).until(
-        EC.element_to_be_clickable((By.ID, "repo-content-pjax-container"))
+        EC.element_to_be_clickable((By.XPATH, "//summary[contains(text(), 'Assets')]"))
     )
     assets_button.click()
-    logging.info("Clicked on the Assets button.")
+    logging.info("Assets section expanded.")
 
-    # Tìm tất cả các asset có định dạng tệp .jar hoặc các loại tệp bạn muốn
-    asset_links = WebDriverWait(driver, 15).until(
-        EC.presence_of_all_elements_located((By.XPATH, "//a[contains(@href, '/releases/download/') and contains(@href, '.jar')]"))
+    # Tìm tệp patches.json và revanced-patches-*.jar
+    json_link = WebDriverWait(driver, 15).until(
+        EC.presence_of_element_located((By.XPATH, "//a[contains(@href, 'patches.json')]"))
+    )
+    jar_link = WebDriverWait(driver, 15).until(
+        EC.presence_of_element_located((By.XPATH, "//a[contains(@href, 'revanced-patches') and contains(@href, '.jar')]"))
     )
 
-    # Lấy URL của asset đầu tiên trong danh sách
-    if asset_links:
-        asset_url = asset_links[0].get_attribute('href')  # Lấy liên kết của asset đầu tiên
-        logging.info(f"Asset found: {asset_url}")
+    # Lấy URL của hai tệp
+    patches_json_url = json_link.get_attribute('href')
+    revanced_patches_jar_url = jar_link.get_attribute('href')
 
-        # Điều hướng đến URL của asset để bắt đầu tải xuống
-        driver.get(asset_url)
-        logging.info("Asset download initiated.")
-    else:
-        logging.error("No asset links found.")
+    logging.info(f"Found patches.json: {patches_json_url}")
+    logging.info(f"Found revanced-patches-*.jar: {revanced_patches_jar_url}")
 
-    # Chờ cho trang tải và kiểm tra
-    time.sleep(5)
+    # Tải xuống các tệp bằng cách điều hướng đến các URL này
+    driver.get(patches_json_url)
+    logging.info("patches.json download initiated.")
+
+    time.sleep(3)  # Đợi tệp được tải
+
+    driver.get(revanced_patches_jar_url)
+    logging.info("revanced-patches-*.jar download initiated.")
+
+    time.sleep(3)  # Đợi tệp được tải
 
 except Exception as e:
     logging.error(f"An error occurred: {e}", exc_info=True)
