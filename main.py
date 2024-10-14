@@ -338,13 +338,17 @@ def get_latest_release_version(repo: str) -> str:
     url = f"https://api.github.com/repos/{repo}/releases/latest"
     headers = {"Authorization": f"token {os.getenv('GITHUB_TOKEN')}"}
     
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        latest_release = response.json()
-        tag_name = latest_release['tag_name']  # Extract tag name (version) from the latest release
-        return extract_version_from_tag(tag_name)  # Extract numerical version from tag
-    else:
-        logging.error(f"Failed to fetch latest release version from {repo}: {response.status_code}")
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            latest_release = response.json()
+            tag_name = latest_release['tag_name']  # Extract tag name (version) from the latest release
+            return extract_version_from_tag(tag_name)  # Extract numerical version from tag
+        else:
+            logging.error(f"Failed to fetch latest release version from {repo}: {response.status_code}")
+            return None
+    except Exception as e:
+        logging.error(f"Exception occurred while fetching release from {repo}: {e}")
         return None
 
 # Extract numerical version from a tag (e.g., v4.16.0-release to 4.16.0)
@@ -364,11 +368,19 @@ def compare_repository_versions(repo_patches: str):
 
     if version_patches and version_current:
         if version_patches == version_current:
-            logging.info("Both repositories have the same version.")
+            logging.info("Both repositories have the same version. Skipping build.")
+            return True  # Skip build if versions are the same
         else:
             logging.info(f"Versions differ: {repo_patches} = {version_patches}, Current repo = {version_current}")
+            return False  # Run build if versions differ
     else:
-        logging.error("Could not retrieve version for one or both repositories.")
+        logging.error("Could not retrieve version for one or both repositories, running build.")
+        return False  # Run build if either repository fails to respond
+
+# Function to run the build process (mockup function)
+def run_build():
+    logging.info("Running build process...")
+    # Place your actual build process code here
 
 # Main execution
 if __name__ == "__main__":
@@ -377,4 +389,8 @@ if __name__ == "__main__":
     # Define the repository to compare
     repo_patches = "ReVanced/revanced-patches"
 
-    compare_repository_versions(repo_patches)
+    # Compare versions
+    skip_build = compare_repository_versions(repo_patches)
+
+    if not skip_build:
+        run_build()  # Only run build if versions differ or repository doesn't respond
