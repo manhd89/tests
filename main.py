@@ -89,45 +89,45 @@ for repo in repositories:
 driver.quit()
 logging.info("Browser closed.")
 
-# Hàm tìm file trong thư mục
-def find_files(directory, file_prefix, file_suffix):
-    files_found = []
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.startswith(file_prefix) and file.endswith(file_suffix):
-                files_found.append(os.path.join(root, file))
-    return files_found
-
 # Hàm để chạy lệnh Java với các tham số -b và -m
-def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, output_apk):
+def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version):
+    output_apk = f'youtube-revanced-v{version}.apk'
+    
     command = [
         'java', '-jar', cli_jar, 'patch',
-        '-b', patches_jar, '-m', integrations_apk, input_apk,
-        '-o', output_apk
+        '-b', patches_jar,      # Gói patches (ReVanced patches)
+        '-m', integrations_apk, # APK chứa integrations (ReVanced integrations)
+        input_apk,              # APK gốc (YouTube APK)
+        '-o', output_apk        # APK đầu ra
     ]
+    
     try:
         result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         logging.info("Output: %s", result.stdout.decode())
     except subprocess.CalledProcessError as e:
         logging.error("Error: %s", e.stderr.decode())
 
-# Tìm file CLI, patches và integrations
-directory = '.'
+# Thư mục chứa các file cần thiết
+directory = '.'  # Thay đổi thành thư mục bạn muốn tìm kiếm
+
+# Tìm file revanced-cli.jar
 cli_jar_files = find_files(directory, 'revanced-cli', '.jar')
+# Tìm file revanced-patches.jar
 patches_jar_files = find_files(directory, 'revanced-patches', '.jar')
+# Tìm file revanced-integrations.apk
 integrations_apk_files = find_files(directory, 'revanced-integrations', '.apk')
 
-# APK đầu vào và tên file đầu ra
-input_apk = 'input_apk_file.apk'  # Thay bằng đường dẫn đến file APK của bạn
-output_apk = 'youtube-revanced-vX.apk'  # Thay bằng tên file đầu ra
-
-# Kiểm tra và chạy lệnh nếu các file tồn tại
+# Kiểm tra và chạy lệnh nếu tất cả các file đều tồn tại
 if cli_jar_files and patches_jar_files and integrations_apk_files:
-    cli_jar = cli_jar_files[0]
-    patches_jar = patches_jar_files[0]
-    integrations_apk = integrations_apk_files[0]
-
+    cli_jar = cli_jar_files[0]  # Chọn file đầu tiên được tìm thấy
+    patches_jar = patches_jar_files[0]  # Chọn file đầu tiên được tìm thấy
+    integrations_apk = integrations_apk_files[0]  # Chọn file đầu tiên được tìm thấy
+    
+    # Gọi hàm download để lấy APK từ Uptodown và phiên bản mới nhất
+    input_apk = download_uptodown()  # Đường dẫn tới file APK đã tải xuống
+    version = input_apk.split('-v')[-1].split('.apk')[0]  # Trích xuất phiên bản từ tên file
+    
     logging.info(f'Running {cli_jar} with patches and integrations...')
-    run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, output_apk)
+    run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
 else:
     logging.error("Không tìm thấy đủ file cần thiết (revanced-cli, revanced-patches, revanced-integrations).")
