@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from youtube import download_uptodown
 
 # Cấu hình logging để ghi chi tiết hơn
 logging.basicConfig(
