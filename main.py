@@ -18,8 +18,18 @@ github_token = os.getenv('GITHUB_TOKEN')
 repository = os.getenv('GITHUB_REPOSITORY')
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+class ColoredLevelFormatter(logging.Formatter):
+    COLOR_CODE = {
+        'WARNING':  "\x1b[31m",
+    }
 
+    def format(self, record):
+        levelname = record.levelname
+        levelname_color = self.COLOR_CODE.get(levelname, "")
+        reset_color = "\x1b[0m"
+        log_msg = super().format(record)
+        colored_log_msg = f"{levelname_color}{log_msg}{reset_color}"
+        return colored_log_msg
 # Path to ChromeDriver
 chrome_driver_path = "/usr/bin/chromedriver"
 
@@ -417,7 +427,7 @@ def compare_repository_versions(repo_patches: str):
 
     if version_patches and version_current:
         if version_patches == version_current:
-            logging.info("Both repositories have the same version. Skipping build.")
+            logging.warning("Both repositories have the same version. Skipping build.")
             return True  # Skip build if versions are the same
         else:
             logging.info(f"Versions differ: {repo_patches} = {version_patches}, Current repo = {version_current}")
