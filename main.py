@@ -93,6 +93,10 @@ logging.info("Browser closed.")
 
 import os
 import subprocess
+import logging
+
+# Cấu hình logging để ghi thông tin ra console
+logging.basicConfig(level=logging.INFO)
 
 # Hàm để tìm các file .jar trong thư mục hiện tại
 def find_jar_files(directory):
@@ -108,9 +112,9 @@ def run_java_command(jar_file):
     command = ['java', '-jar', jar_file, '-h']  # Thay đổi lệnh nếu cần
     try:
         result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        logging.info("Output:", result.stdout.decode())
+        logging.info("Output: %s", result.stdout.decode())  # Sử dụng format string
     except subprocess.CalledProcessError as e:
-        logging.error("Error:", e.stderr.decode())
+        logging.error("Error: %s", e.stderr.decode())  # Sử dụng format string
 
 # Thư mục cần tìm kiếm
 directory = '.'  # Thay đổi thành thư mục bạn muốn tìm kiếm
