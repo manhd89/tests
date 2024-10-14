@@ -98,7 +98,16 @@ def download_resource(url: str, filename: str) -> str:
 def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version):
     output_apk = f'youtube-revanced-v{version}.apk'
     
-    command = [
+    lib_command = [
+        'zip',
+        '--delete',
+        input_apk,
+        'lib/x86/*',
+        'lib/x86_64/*',
+        'lib/armeabi-v7a/*',
+    ]
+     
+    patch_command = [
         'java', '-jar', cli_jar, 'patch',
         '-b', patches_jar,      # ReVanced patches
         '-m', integrations_apk, # ReVanced integrations APK
@@ -107,22 +116,46 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
     ]
     
     try:
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # Run the lib_command first to delete unnecessary libs
+        process_lib = subprocess.Popen(lib_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         
-        for line in iter(process.stdout.readline, b''):
+        for line in iter(process_lib.stdout.readline, b''):
             logging.info(line.decode().strip())
         
-        for line in iter(process.stderr.readline, b''):
+        for line in iter(process_lib.stderr.readline, b''):
             logging.error(line.decode().strip())
         
-        process.stdout.close()
-        process.stderr.close()
-        process.wait()
+        process_lib.stdout.close()
+        process_lib.stderr.close()
+        process_lib.wait()
 
-        if process.returncode != 0:
-            logging.error(f"Process exited with return code: {process.returncode}")
+        if process_lib.returncode != 0:
+            logging.error(f"Lib command exited with return code: {process_lib.returncode}")
+            return None  # Exit if lib_command fails
+
+        # Now run the patch command
+        process_patch = subprocess.Popen(patch_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        for line in iter(process_patch.stdout.readline, b''):
+            logging.info(line.decode().strip())
+        
+        for line in iter(process_patch.stderr.readline, b''):
+            logging.error(line.decode().strip())
+        
+        process_patch.stdout.close()
+        process_patch.stderr.close()
+        process_patch.wait()
+
+        if process_patch.returncode != 0:
+            logging.error(f"Patch command exited with return code: {process_patch.returncode}")
+            return None  # Exit if patch_command fails
+
+        logging.info(f"Successfully patched APK to {output_apk}.")
+        return output_apk  # Return the path to the output APK
+
     except Exception as e:
         logging.error(f"Exception occurred: {e}")
+        return None
         
 # Main function to download APK from Uptodown based on patches.json versions
 def download_uptodown():
