@@ -1,110 +1,120 @@
 import logging
 import requests
+import subprocess
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
+from bs4 import BeautifulSoup
 import os
-import subprocess
+import json
 
-# Cấu hình logging để ghi chi tiết hơn
+# Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
-# Đường dẫn đến ChromeDriver
+# Path to ChromeDriver
 chrome_driver_path = "/usr/bin/chromedriver"
 
-# Cấu hình các tùy chọn của Chrome
-chrome_options = Options()
-chrome_options.add_argument("--headless")  # Chạy ở chế độ không giao diện
-chrome_options.add_argument("--no-sandbox")  # Không dùng sandbox
-chrome_options.add_argument("--disable-dev-shm-usage")  # Tắt shared memory
-chrome_options.add_argument(
-    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.5735.198 Safari/537.36"
-)
+# Create Chrome driver with headless options
+def create_chrome_driver():
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument(
+        f"user-agent=Mozilla/5.0 (Android 13; Mobile; rv:125.0) Gecko/125.0 Firefox/125.0"
+    )
+    service = Service(chrome_driver_path)
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    return driver
 
-# Danh sách các repository
-repositories = [
-    "https://github.com/ReVanced/revanced-patches/releases/latest",
-    "https://github.com/ReVanced/revanced-cli/releases/latest",
-    "https://github.com/ReVanced/revanced-integrations/releases/latest"
-]
-
-# Khởi tạo trình điều khiển
-service = Service(chrome_driver_path)
-driver = webdriver.Chrome(service=service, options=chrome_options)
-
-# Hàm tải các asset từ repository
-def download_assets_from_repo(release_url):
-    driver.get(release_url)
-    
-    # Chờ trang tải hoàn toàn
-    WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, "repo-content-pjax-container")))
-    
-    # Cuộn trang xuống để đảm bảo các phần tử hiển thị
-    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-    
+# Click on 'See more' button if necessary
+def click_see_more(driver):
     try:
-        logging.info("Looking for the Assets section...")
-        
-        # Tìm phần tử "Assets"
-        assets_button = WebDriverWait(driver, 15).until(
-            EC.element_to_be_clickable((By.ID, "repo-content-pjax-container"))
-        )
-        assets_button.click()
-        logging.info("Clicked on the Assets button.")
-        
-        # Tìm tất cả các asset
-        asset_links = WebDriverWait(driver, 15).until(
-            EC.presence_of_all_elements_located((By.XPATH, "//a[contains(@href, '/releases/download/')]"))
-        )
+        see_more_button = driver.find_element(By.ID, "button-list-more")
+        if see_more_button:
+            see_more_button.click()
+    except NoSuchElementException:
+        pass
 
-        # Lọc và tải xuống các asset phù hợp
-        for link in asset_links:
-            asset_url = link.get_attribute('href')
-            if not asset_url.endswith('.asc'):
-                # Kiểm tra mã phản hồi của asset
-                response = requests.head(asset_url, allow_redirects=True)
-                if response.status_code == 200:
-                    logging.info(f"Downloading asset: {asset_url}")
-                    download_response = requests.get(asset_url, allow_redirects=True)
-                    if download_response.status_code == 200:
-                        filename = asset_url.split('/')[-1]
-                        with open(filename, 'wb') as file:
-                            file.write(download_response.content)
-                        logging.info(f"Downloaded {filename} successfully.")
-                    else:
-                        logging.error(f"Failed to download {asset_url}. Status code: {download_response.status_code}")
-                else:
-                    logging.error(f"Asset URL is not reachable: {asset_url}. Status code: {response.status_code}")
-    except Exception as e:
-        logging.error(f"An error occurred while downloading from {release_url}: {e}", exc_info=True)
+# Get download link for a specific version from Uptodown
+def get_download_link(version: str) -> str:
+    url = "https://youtube.en.uptodown.com/android/versions"
+    driver = create_chrome_driver()
+    driver.get(url)
+    soup = BeautifulSoup(driver.page_source, "html.parser")
 
-# Lặp qua từng repository để tải xuống assets
-for repo in repositories:
-    download_assets_from_repo(repo)
+    while True:
+        divs = soup.find_all("div", {"data-url": True})
+        for div in divs:
+            version_span = div.find("span", class_="version")
+            if version_span and version_span.text.strip() == version:
+                dl_url = div["data-url"]
+                driver.get(dl_url)
 
-# Đóng trình duyệt
-driver.quit()
-logging.info("Browser closed.")
+                # Parse the download page for the actual download link
+                soup = BeautifulSoup(driver.page_source, "html.parser")
+                download_button = soup.find('button', {'id': 'detail-download-button'})
+                if download_button and download_button.get('data-url'):
+                    data_url = download_button.get('data-url')
+                    full_url = f"https://dw.uptodown.com/dwn/{data_url}"
+                    driver.quit()
+                    return full_url
 
-# Hàm để tải APK từ Uptodown
-def download_uptodown():
-    # Tạm giả lập link tải xuống APK và phiên bản
-    apk_url = "https://example.com/youtube-v16.38.39.apk"  # Thay đổi thành URL thực tế
-    filename = "youtube-v16.38.39.apk"
-    
-    response = requests.get(apk_url)
+        # If the "See more" button is available, click to load more versions
+        click_see_more(driver)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+
+    driver.quit()
+    return None
+
+# Download the APK or resource
+def download_resource(url: str, filename: str) -> str:
+    if not url:
+        logging.error(f"Download URL is None. Cannot download {filename}.")
+        return None
+
+    filepath = os.path.join("./", filename)
+    response = requests.get(url)
     if response.status_code == 200:
-        with open(filename, 'wb') as apk_file:
+        with open(filepath, 'wb') as apk_file:
             apk_file.write(response.content)
-        logging.info(f"Downloaded APK: {filename}")
-        return filename
+        logging.info(f"Downloaded {filename} successfully.")
+        return filepath
     else:
         logging.error(f"Failed to download APK. Status code: {response.status_code}")
         return None
 
+# Main function to download APK from Uptodown based on patches.json versions
+def download_uptodown():
+    with open("./patches.json", "r") as patches_file:
+        patches = json.load(patches_file)
+
+        versions = set()
+        for patch in patches:
+            compatible_packages = patch.get("compatiblePackages")
+            if compatible_packages and isinstance(compatible_packages, list):
+                for package in compatible_packages:
+                    if (
+                        package.get("name") == "com.google.android.youtube" and
+                        package.get("versions") is not None and
+                        isinstance(package["versions"], list) and
+                        package["versions"]
+                    ):
+                        versions.update(
+                            map(str.strip, package["versions"])
+                        )
+                        
+        version = sorted(versions, reverse=True)[0]  # Use the latest version
+        download_link = get_download_link(version)
+        filename = f"youtube-v{version}.apk"
+        
+        return download_resource(download_link, filename)
+
+# Function to find required files (CLI, patches, integrations)
 def find_files(directory, file_prefix, file_suffix):
     files_found = []
     for root, dirs, files in os.walk(directory):
@@ -113,16 +123,16 @@ def find_files(directory, file_prefix, file_suffix):
                 files_found.append(os.path.join(root, file))
     return files_found
 
-# Hàm để chạy lệnh Java với các tham số -b và -m
+# Function to run the Java command
 def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version):
     output_apk = f'youtube-revanced-v{version}.apk'
     
     command = [
         'java', '-jar', cli_jar, 'patch',
-        '-b', patches_jar,      # Gói patches (ReVanced patches)
-        '-m', integrations_apk, # APK chứa integrations (ReVanced integrations)
-        input_apk,              # APK gốc (YouTube APK)
-        '-o', output_apk        # APK đầu ra
+        '-b', patches_jar,      # ReVanced patches
+        '-m', integrations_apk, # ReVanced integrations APK
+        input_apk,              # Original YouTube APK
+        '-o', output_apk        # Output APK
     ]
     
     try:
@@ -131,27 +141,63 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
     except subprocess.CalledProcessError as e:
         logging.error("Error: %s", e.stderr.decode())
 
-# Thư mục chứa các file cần thiết
-directory = '.'  # Thay đổi thành thư mục bạn muốn tìm kiếm
+# Download ReVanced assets from GitHub
+def download_assets_from_repo(release_url):
+    driver = create_chrome_driver()
+    driver.get(release_url)
+    
+    try:
+        WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, "repo-content-pjax-container")))
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
-# Tìm file revanced-cli.jar
+        asset_links = WebDriverWait(driver, 15).until(
+            EC.presence_of_all_elements_located((By.XPATH, "//a[contains(@href, '/releases/download/')]"))
+        )
+
+        for link in asset_links:
+            asset_url = link.get_attribute('href')
+            if not asset_url.endswith('.asc'):
+                response = requests.head(asset_url, allow_redirects=True)
+                if response.status_code == 200:
+                    download_response = requests.get(asset_url, allow_redirects=True)
+                    filename = asset_url.split('/')[-1]
+                    with open(filename, 'wb') as file:
+                        file.write(download_response.content)
+                    logging.info(f"Downloaded {filename} successfully.")
+    except Exception as e:
+        logging.error(f"Error while downloading from {release_url}: {e}")
+    finally:
+        driver.quit()
+
+# List of repositories to download assets from
+repositories = [
+    "https://github.com/ReVanced/revanced-patches/releases/latest",
+    "https://github.com/ReVanced/revanced-cli/releases/latest",
+    "https://github.com/ReVanced/revanced-integrations/releases/latest"
+]
+
+# Download the assets
+for repo in repositories:
+    download_assets_from_repo(repo)
+
+# Directory containing the files
+directory = '.'
+
+# Find necessary files
 cli_jar_files = find_files(directory, 'revanced-cli', '.jar')
-# Tìm file revanced-patches.jar
 patches_jar_files = find_files(directory, 'revanced-patches', '.jar')
-# Tìm file revanced-integrations.apk
 integrations_apk_files = find_files(directory, 'revanced-integrations', '.apk')
 
-# Kiểm tra và chạy lệnh nếu tất cả các file đều tồn tại
+# Check if all necessary files are found and proceed to patch the APK
 if cli_jar_files and patches_jar_files and integrations_apk_files:
-    cli_jar = cli_jar_files[0]  # Chọn file đầu tiên được tìm thấy
-    patches_jar = patches_jar_files[0]  # Chọn file đầu tiên được tìm thấy
-    integrations_apk = integrations_apk_files[0]  # Chọn file đầu tiên được tìm thấy
-    
-    # Gọi hàm download để lấy APK từ Uptodown và phiên bản mới nhất
-    input_apk = download_uptodown()  # Đường dẫn tới file APK đã tải xuống
-    version = input_apk.split('-v')[-1].split('.apk')[0]  # Trích xuất phiên bản từ tên file
-    
-    logging.info(f'Running {cli_jar} with patches and integrations...')
-    run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
+    cli_jar = cli_jar_files[0]  # First found file
+    patches_jar = patches_jar_files[0]  # First found file
+    integrations_apk = integrations_apk_files[0]  # First found file
+
+    input_apk = download_uptodown()  # Download APK from Uptodown
+    if input_apk:
+        version = input_apk.split('-v')[-1].split('.apk')[0]  # Extract version from APK filename
+        logging.info(f"Running {cli_jar} with patches and integrations...")
+        run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
 else:
-    logging.error("Không tìm thấy đủ file cần thiết (revanced-cli, revanced-patches, revanced-integrations).")
+    logging.error("Required files not found (revanced-cli, revanced-patches, revanced-integrations).")
