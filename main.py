@@ -31,7 +31,7 @@ service = Service(chrome_driver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
 # Truy cập trang phát hành GitHub
-release_url = "https://github.com/ReVanced/revanced-patches/releases"
+release_url = "https://github.com/ReVanced/revanced-patches/releases/latest"
 driver.get(release_url)
 
 # Chờ trang tải hoàn toàn
