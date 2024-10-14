@@ -89,6 +89,14 @@ for repo in repositories:
 driver.quit()
 logging.info("Browser closed.")
 
+def find_files(directory, file_prefix, file_suffix):
+    files_found = []
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.startswith(file_prefix) and file.endswith(file_suffix):
+                files_found.append(os.path.join(root, file))
+    return files_found
+
 # Hàm để chạy lệnh Java với các tham số -b và -m
 def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version):
     output_apk = f'youtube-revanced-v{version}.apk'
