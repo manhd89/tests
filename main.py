@@ -99,7 +99,7 @@ def find_jar_files(directory):
     jar_files = []
     for root, dirs, files in os.walk(directory):
         for file in files:
-            if file.endswith('.jar'):
+            if file.startswith('revanced-cli') and file.endswith('.jar'):
                 jar_files.append(os.path.join(root, file))
     return jar_files
 
