@@ -328,51 +328,43 @@ def create_github_release(app_name, download_files, apk_file_path):
     else:
         logging.error(f"Failed to upload {apk_file_path}. Status code: {response.status_code}")
 
-# List of repositories to download assets from
-repositories = [
-    "https://github.com/ReVanced/revanced-patches/releases/latest",
-    "https://github.com/ReVanced/revanced-cli/releases/latest",
-    "https://github.com/ReVanced/revanced-integrations/releases/latest"
-]
-
-# Download the assets
-all_downloaded_files = []
-for repo in repositories:
-    downloaded_files = download_assets_from_repo(repo)
-    all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
-
-# After downloading, find the necessary files
-cli_jar_files = [f for f in all_downloaded_files if 'revanced-cli' in f and f.endswith('.jar')]
-patches_jar_files = [f for f in all_downloaded_files if 'revanced-patches' in f and f.endswith('.jar')]
-integrations_apk_files = [f for f in all_downloaded_files if 'revanced-integrations' in f and f.endswith('.apk')]
-
-# Ensure we have the required files
-if not cli_jar_files or not patches_jar_files or not integrations_apk_files:
-    logging.error("Failed to download necessary ReVanced files.")
-else:
-    cli_jar = cli_jar_files[0]  # Get the first (and probably only) CLI JAR
-    patches_jar = patches_jar_files[0]  # Get the first patches JAR
-    integrations_apk = integrations_apk_files[0]  # Get the first integrations APK
-
-    # Download the YouTube APK
-    input_apk, version = download_uptodown()
-
-    if input_apk:
-        # Run the patching process
-        output_apk = run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
-        if output_apk:
-            logging.info(f"Successfully created the patched APK: {output_apk}")
-
-            # Prepare download files for the release
-            download_files = {
-                "revanced-patches": patches_jar,
-                "revanced-integrations": integrations_apk,
-                "revanced-cli": cli_jar
-            }
-
-            # Create GitHub release
-            create_github_release("ReVanced", download_files, output_apk)
-        else:
-            logging.error("Failed to patch the APK.")
+# Function to compare versions and decide whether to build or skip
+def should_build_or_skip(current_version: str, repo_release_version: str) -> bool:
+    if current_version == repo_release_version:
+        logging.info("Current version matches the release version. Skipping build.")
+        return False  # Skip build
     else:
-        logging.error("Failed to download the YouTube APK.")
+        logging.info("Current version does not match the release version. Proceeding with build.")
+        return True  # Proceed with build
+
+# Function to get the latest version from the revanced-patches repository
+def get_latest_revanced_patches_version():
+    url = "https://api.github.com/repos/ReVanced/revanced-patches/releases/latest"
+    response = requests.get(url)
+    if response.status_code == 200:
+        latest_release = response.json()
+        return latest_release['tag_name']  # Assuming tag_name holds the version
+    else:
+        logging.error(f"Failed to fetch latest version from revanced-patches: {response.status_code}")
+        return None
+
+# In your main execution flow
+latest_patches_version = get_latest_revanced_patches_version()
+
+if latest_patches_version:
+    # Assume we have a function or method to get the current version of your local revanced-patches
+    current_version = "0.1.0"  # Replace with actual logic to fetch your current version
+
+    if should_build_or_skip(current_version, latest_patches_version):
+        # Proceed to build APK
+        input_apk, version = download_uptodown()  # Download APK
+        if input_apk:
+            output_apk = run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
+            if output_apk:
+                logging.info(f"Successfully created the patched APK: {output_apk}")
+            else:
+                logging.error("Failed to patch the APK.")
+    else:
+        logging.info("APK build skipped. Using existing APK.")
+else:
+    logging.error("Unable to retrieve the latest version from revanced-patches.")
