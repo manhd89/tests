@@ -12,6 +12,9 @@ from bs4 import BeautifulSoup
 import os
 import json
 
+github_token = os.getenv('GITHUB_TOKEN')
+repository = os.getenv('GITHUB_REPOSITORY')
+
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -235,7 +238,100 @@ cli_jar_files = [f for f in all_downloaded_files if 'revanced-cli' in f and f.en
 patches_jar_files = [f for f in all_downloaded_files if 'revanced-patches' in f and f.endswith('.jar')]
 integrations_apk_files = [f for f in all_downloaded_files if 'revanced-integrations' in f and f.endswith('.apk')]
 
-# Check if all necessary files are found and proceed to patch the APK
+# Convert hyphenated strings to title-cased strings
+def convert_title(text):
+    pattern = re.compile(r'\b([a-z0-9]+(?:-[a-z0-9]+)*)\b', re.IGNORECASE)
+    return pattern.sub(lambda match: match.group(1).replace('-', ' ').title(), text)
+
+# Extract version from the file name
+def extract_version(file_path):
+    if file_path:
+        base_name = os.path.splitext(os.path.basename(file_path))[0]
+        match = re.search(r'(\d+\.\d+\.\d+(-[a-z]+\.\d+)?(-release\d*)?)', base_name)
+        if match:
+            return match.group(1)
+    return 'unknown'
+
+# Create GitHub release function
+def create_github_release(app_name, source, download_files, apk_file_path):
+    source_path = f'./sources/{source}.json'
+    with open(source_path, 'r') as json_file:
+        info = json.load(json_file)
+
+    name = info[0].get("name", "")
+
+    patch_file_path = download_files["revanced-patches"]
+    integrations_file_path = download_files["revanced-integrations"]
+    cli_file_path = download_files["revanced-cli"]
+
+    patchver = extract_version(patch_file_path)
+    integrationsver = extract_version(integrations_file_path)
+    cliver = extract_version(cli_file_path)
+    tag_name = f"{name}-v{patchver}"
+
+    if not apk_file_path:
+        logging.error("APK file not found, skipping release.")
+        return
+
+    existing_release = requests.get(
+        f"https://api.github.com/repos/{repository}/releases/tags/{tag_name}",
+        headers={"Authorization": f"token {github_token}"}
+    ).json()
+
+    if "id" in existing_release:
+        existing_release_id = existing_release["id"]
+        logging.info(f"Updating existing release: {existing_release_id}")
+    else:
+        release_body = f"""
+# Release Notes
+
+## Build Tools:
+- **ReVanced Patches:** v{patchver}
+- **ReVanced Integrations:** v{integrationsver}
+- **ReVanced CLI:** v{cliver}
+
+## Note:
+**ReVanced GmsCore** is **necessary** to work. 
+- Please **download** it from [HERE](https://github.com/revanced/gmscore/releases/latest).
+        """
+        release_name = f"{convert_title(name)} v{patchver}"
+
+        release_data = {
+            "tag_name": tag_name,
+            "target_commitish": "main",
+            "name": release_name,
+            "body": release_body
+        }
+        new_release = requests.post(
+            f"https://api.github.com/repos/{repository}/releases",
+            headers={
+                "Authorization": f"token {github_token}",
+                "Content-Type": "application/json"
+            },
+            data=json.dumps(release_data)
+        ).json()
+
+        existing_release_id = new_release["id"]
+
+    upload_url_apk = f"https://uploads.github.com/repos/{repository}/releases/{existing_release_id}/assets?name={os.path.basename(apk_file_path)}"
+    with open(apk_file_path, 'rb') as apk_file:
+        apk_file_content = apk_file.read()
+
+    response = requests.post(
+        upload_url_apk,
+        headers={
+            "Authorization": f"token {github_token}",
+            "Content-Type": "application/vnd.android.package-archive"
+        },
+        data=apk_file_content
+    )
+
+    if response.status_code == 201:
+        logging.info(f"Successfully uploaded {apk_file_path} to GitHub release.")
+    else:
+        logging.error(f"Failed to upload {apk_file_path}. Status code: {response.status_code}")
+
+# Main logic to download and patch APK
 if cli_jar_files and patches_jar_files and integrations_apk_files:
     cli_jar = cli_jar_files[0]  # First found file
     patches_jar = patches_jar_files[0]  # First found file
@@ -243,7 +339,17 @@ if cli_jar_files and patches_jar_files and integrations_apk_files:
 
     input_apk, version = download_uptodown()  # Download APK from Uptodown and get the version
     if input_apk:
-        logging.info(f"Running {cli_jar} with patches and integrations...")
-        run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
+        output_apk = run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
+        if output_apk:
+            logging.info(f"Running create_github_release with {output_apk}.")
+            
+            # Prepare download files for the release
+            download_files = {
+                "revanced-patches": patches_jar,
+                "revanced-integrations": integrations_apk,
+                "revanced-cli": cli_jar
+            }
+            
+            create_github_release("ReVanced", "revanced-patches", download_files, output_apk)
 else:
     logging.error("Required files not found (revanced-cli, revanced-patches, revanced-integrations).")
