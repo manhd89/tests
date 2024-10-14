@@ -78,7 +78,13 @@ def download_resource(url: str, filename: str) -> str:
         return None
 
     filepath = os.path.join("./", filename)
-    response = requests.get(url)
+    
+    # Add User-Agent header
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Android 13; Mobile; rv:125.0) Gecko/125.0 Firefox/125.0'
+    }
+    
+    response = requests.get(url, headers=headers)  # Pass headers with request
     if response.status_code == 200:
         with open(filepath, 'wb') as apk_file:
             apk_file.write(response.content)
