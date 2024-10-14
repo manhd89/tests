@@ -96,7 +96,6 @@ def download_resource(url: str, filename: str) -> str:
 
 # Main function to download APK from Uptodown based on patches.json versions
 def download_uptodown():
-    global version
     with open("./patches.json", "r") as patches_file:
         patches = json.load(patches_file)
 
@@ -119,8 +118,9 @@ def download_uptodown():
         download_link = get_download_link(version)
         filename = f"youtube-v{version}.apk"
         
-        return download_resource(download_link, filename)
-
+        file_path = download_resource(download_link, filename)
+        return file_path, version
+        
 # Function to find required files (CLI, patches, integrations)
 def find_files(file_prefix, file_suffix):
     files_found = []
@@ -198,7 +198,6 @@ if cli_jar_files and patches_jar_files and integrations_apk_files:
 
     input_apk = download_uptodown()  # Download APK from Uptodown
     if input_apk:
-        version = download_uptodown.version()
         logging.info(f"Running {cli_jar} with patches and integrations...")
         run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
 else:
