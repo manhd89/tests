@@ -1,5 +1,6 @@
 import logging
 import requests
+import version
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -99,29 +100,49 @@ import logging
 # Cấu hình logging để ghi thông tin ra console
 logging.basicConfig(level=logging.INFO)
 
-# Hàm để tìm các file .jar trong thư mục hiện tại
-def find_jar_files(directory):
-    jar_files = []
+input_apk = download_uptodown
+
+# Hàm để tìm các file theo tên trong thư mục hiện tại
+def find_files(directory, file_prefix, file_suffix):
+    files_found = []
     for root, dirs, files in os.walk(directory):
         for file in files:
-            if file.startswith('revanced-cli') and file.endswith('.jar'):
-                jar_files.append(os.path.join(root, file))
-    return jar_files
+            if file.startswith(file_prefix) and file.endswith(file_suffix):
+                files_found.append(os.path.join(root, file))
+    return files_found
 
-# Hàm để chạy lệnh Java
-def run_java_command(jar_file):
-    command = ['java', '-jar', jar_file, '-h']  # Thay đổi lệnh nếu cần
+# Hàm để chạy lệnh Java với các tham số -b và -m
+def run_java_command(cli_jar, patches_jar, integrations_apk):
+    command = [
+        'java', '-jar', cli_jar, 'patch',
+        '-b', patches_jar,         # Thêm flag -b cho revanced-patches
+        '-m', integrations_apk,  # Thêm flag -m cho revanced-integrations
+        input_apk,
+        '-o', f'youtube-revanced-v{download_uptodown.version}.apk'
+    ]
     try:
         result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         logging.info("Output: %s", result.stdout.decode())  # Sử dụng format string
     except subprocess.CalledProcessError as e:
         logging.error("Error: %s", e.stderr.decode())  # Sử dụng format string
 
-# Thư mục cần tìm kiếm
+# Thư mục chứa các file cần thiết
 directory = '.'  # Thay đổi thành thư mục bạn muốn tìm kiếm
 
-# Tìm và chạy các file jar
-jar_files = find_jar_files(directory)
-for jar in jar_files:
-    logging.info(f'Running {jar}...')
-    run_java_command(jar)
+# Tìm file revanced-cli.jar
+cli_jar_files = find_files(directory, 'revanced-cli', '.jar')
+# Tìm file revanced-patches.jar
+patches_jar_files = find_files(directory, 'revanced-patches', '.jar')
+# Tìm file revanced-integrations.apk
+integrations_apk_files = find_files(directory, 'revanced-integrations', '.apk')
+
+# Kiểm tra và chạy lệnh nếu tất cả các file đều tồn tại
+if cli_jar_files and patches_jar_files and integrations_apk_files:
+    cli_jar = cli_jar_files[0]  # Chọn file đầu tiên được tìm thấy
+    patches_jar = patches_jar_files[0]  # Chọn file đầu tiên được tìm thấy
+    integrations_apk = integrations_apk_files[0]  # Chọn file đầu tiên được tìm thấy
+
+    logging.info(f'Running {cli_jar} with patches and integrations...')
+    run_java_command(cli_jar, patches_jar, integrations_apk)
+else:
+    logging.error("Không tìm thấy đủ file cần thiết (revanced-cli, revanced-patches, revanced-integrations).")
