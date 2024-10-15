@@ -355,15 +355,13 @@ def run_build():
     ]
 
     # Download the assets
-    all_downloaded_files = []
     for repo in repositories:
         downloaded_files = download_assets_from_repo(repo)
-        all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
 
     # After downloading, find the necessary files
-    cli_jar = [f for f in all_downloaded_files if 'revanced-cli' in f]
-    patches_jar = [f for f in all_downloaded_files if 'revanced-patches' in f]
-    integrations_apk = [f for f in all_downloaded_files if 'revanced-integrations' in f]
+    cli_jar = downloaded_files['revanced-cli']
+    patches_jar = downloaded_files['revanced-patches']
+    integrations_apk = downloaded_files['revanced-integrations']
 
     # Ensure we have the required files
     if not cli_jar or not patches_jar or not integrations_apk:
