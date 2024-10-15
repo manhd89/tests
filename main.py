@@ -62,9 +62,9 @@ class ColoredLevelFormatter(logging.Formatter):
 
 # Setup Logging Level Color
 logging.getLogger().setLevel(logging.INFO)
-formatter = ColoredLevelFormatter("%(asctime)s %(message)s", datefmt='%Y-%m-%d %H:%M:%S')
+formatter = ColoredLevelFormatter()
 console = logging.StreamHandler()
-console.setFormatter(ColoredLevelFormatter("%(asctime)s %(message)s", datefmt='%Y-%m-%d %H:%M:%S'))
+console.setFormatter(formatter)
 logger = logging.getLogger()
 logger.addHandler(console)
 
