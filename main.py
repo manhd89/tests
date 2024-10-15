@@ -1,7 +1,6 @@
 import logging
 import requests
 import subprocess
-from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -21,46 +20,22 @@ repository = os.getenv('GITHUB_REPOSITORY')
 # Setup logging
 class ColoredLevelFormatter(logging.Formatter):
     COLOR_CODE = {
-        'DEBUG':    "\x1b[36m",
-        'INFO':     "\x1b[0m",
-        'WARNING':  "\x1b[33m",
-        'ERROR':    "\x1b[31m",
-        'CRITICAL': "\x1b[31;1m",
-        'RESET':    "\x1b[0m",
-        'DATE':     "\x1b[32m",
-        'CALLER':   "\x1b[36m"
+        'WARNING':  "\x1b[31m",
     }
 
     def format(self, record):
         levelname = record.levelname
         levelname_color = self.COLOR_CODE.get(levelname, "")
-        reset_color = self.COLOR_CODE['RESET']
-        date_color = self.COLOR_CODE['DATE']
-        caller_color = self.COLOR_CODE['CALLER']
-
-        current_time = datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-
-        caller_info = f"{os.path.basename(os.path.dirname(record.pathname))}:{record.funcName}:{record.lineno}"
-        original_message = record.getMessage()
-
-        formatted_message = (
-            f"{date_color}{current_time}{reset_color} | "
-            f"{levelname_color}{levelname:<8}{reset_color} | "
-            f"{caller_color}{caller_info}{reset_color} - "
-            f"{levelname_color}{original_message}{reset_color}"
-        )
-
-        record.msg = formatted_message
-        formatted_record = super().format(record)
-
-        return formatted_record
-        
+        reset_color = "\x1b[0m"
+        log_msg = super().format(record)
+        colored_log_msg = f"{levelname_color}{log_msg}{reset_color}"
+        return colored_log_msg
 
 # Setup Logging Level Color
 logging.getLogger().setLevel(logging.INFO)
-formatter = ColoredLevelFormatter()
+formatter = ColoredLevelFormatter("%(asctime)s %(message)s", datefmt='%Y-%m-%d %H:%M:%S')
 console = logging.StreamHandler()
-console.setFormatter(formatter)
+console.setFormatter(ColoredLevelFormatter("%(asctime)s %(message)s", datefmt='%Y-%m-%d %H:%M:%S'))
 logger = logging.getLogger()
 logger.addHandler(console)
 
