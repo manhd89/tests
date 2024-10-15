@@ -361,7 +361,7 @@ def run_build():
         all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
 
     # After downloading, find the necessary files
-    cli_jar_files = [f for f in all_downloaded_files if 'revanced-cli' in f and f.endswith('.jar')]
+    cli_jar_files = all_downloaded_files['revanced-cli']
     patches_jar_files = [f for f in all_downloaded_files if 'revanced-patches' in f and f.endswith('.jar')]
     integrations_apk_files = [f for f in all_downloaded_files if 'revanced-integrations' in f and f.endswith('.apk')]
 
