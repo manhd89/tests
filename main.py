@@ -240,7 +240,8 @@ def download_assets_from_repo(release_url):
     downloaded_files = {
         'integrations': None,
         'patches': None,
-        'cli': None
+        'cli': None,
+        'patches_json': None  # Add this for patches.json
     }
 
     try:
@@ -261,6 +262,8 @@ def download_assets_from_repo(release_url):
                 downloaded_files['patches'] = download_resource(asset_url, filename)
             elif 'revanced-cli' in filename and filename.endswith('.jar'):
                 downloaded_files['cli'] = download_resource(asset_url, filename)
+            elif 'patches.json' in filename:  # Check for patches.json
+                downloaded_files['patches_json'] = download_resource(asset_url, filename)
     except Exception as e:
         logging.error(f"Error while downloading from {release_url}: {e}")
     finally:
@@ -389,7 +392,8 @@ def run_build():
     all_downloaded_files = {
         'integrations': None,
         'patches': None,
-        'cli': None
+        'cli': None,
+        'patches_json': None  # Add this for patches.json
     }
 
     # Download the assets and populate the dictionary
@@ -401,21 +405,22 @@ def run_build():
     integrations_apk = all_downloaded_files['integrations']
     patches_jar = all_downloaded_files['patches']
     cli_jar = all_downloaded_files['cli']
+    patches_json = all_downloaded_files['patches_json']  # Get patches.json
 
     # Ensure we have the required files
-    if not cli_jar or not patches_jar or not integrations_apk:
+    if not cli_jar or not patches_jar or not integrations_apk or not patches_json:
         logging.error("Failed to download necessary ReVanced files.")
     else:
         # Download the YouTube APK
         input_apk, version = download_uptodown()
 
         if input_apk:
-            # Run the patching process
-            output_apk = run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
+            # Run the patching process using patches.json
+            output_apk = run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version, patches_json)
             if output_apk:
                 logging.info(f"Successfully created the patched APK: {output_apk}")
 
-                # Prepare download files for the release
+                # Prepare download files for the release (patches.json is NOT included here)
                 download_files = {
                     "revanced-patches": patches_jar,
                     "revanced-integrations": integrations_apk,
@@ -428,7 +433,6 @@ def run_build():
                 logging.error("Failed to patch the APK.")
         else:
             logging.error("Failed to download the YouTube APK.")
-
 
 # Function to get the latest release version from a GitHub repository
 def get_latest_release_version(repo: str) -> str:
