@@ -147,6 +147,7 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
     
     try:
         # Run the lib_command first to delete unnecessary libs
+        logging.info(f"Remove some architectures...")
         process_lib = subprocess.Popen(lib_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         
         # Print stdout and stderr in real-time with flush
@@ -161,10 +162,11 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
         process_lib.wait()
 
         if process_lib.returncode != 0:
-            print(f"ERROR: Lib command exited with return code: {process_lib.returncode}", flush=True)
+            logging.error(f"Lib command exited with return code: {process_lib.returncode}")
             return None  # Exit if lib_command fails
 
         # Now run the patch command
+        logging.info(f"Patch {input_apk} with Revanced patches...")
         process_patch = subprocess.Popen(patch_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         # Print stdout and stderr in real-time with flush
@@ -179,14 +181,14 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
         process_patch.wait()
 
         if process_patch.returncode != 0:
-            print(f"ERROR: Patch command exited with return code: {process_patch.returncode}", flush=True)
+            logging.error(f"Patch command exited with return code: {process_patch.returncode}")
             return None  # Exit if patch_command fails
 
         logging.info(f"Successfully patched APK to {output_apk}.")
         return output_apk  # Return the path to the output APK
 
     except Exception as e:
-        print(f"ERROR: Exception occurred: {e}", flush=True)
+        logging.error(f"Exception occurred: {e}")
         return None
         
 # Main function to download APK from Uptodown based on patches.json versions
