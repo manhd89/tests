@@ -108,7 +108,6 @@ def get_download_link(version: str) -> str:
     driver.quit()
     return None
 
-# Download the APK or resource
 def download_resource(url: str, filename: str) -> str:
     filepath = os.path.join("./", filename)
     
@@ -116,15 +115,30 @@ def download_resource(url: str, filename: str) -> str:
     headers = {
         'User-Agent': 'Mozilla/5.0 (Android 13; Mobile; rv:125.0) Gecko/125.0 Firefox/125.0'
     }
+
+    response = requests.get(url, headers=headers, stream=True)
     
-    response = requests.get(url, headers=headers)
+    # Check if the request was successful
     if response.status_code == 200:
+        final_url = response.url  # Get final URL after any redirections
+        total_size = int(response.headers.get('Content-Length', 0))  # Get the total file size
+        downloaded_size = 0
+
         with open(filepath, 'wb') as apk_file:
-            apk_file.write(response.content)
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:  # Filter out keep-alive chunks
+                    apk_file.write(chunk)
+                    downloaded_size += len(chunk)
+                    
+                    # Logging the download progress
+                    logging.info(
+                        f"URL: {final_url} [{downloaded_size}/{total_size}] -> \"{filename}\" [1]"
+                    )
+
         logging.info(f"Downloaded {filename} successfully.")
         return filepath
     else:
-        logging.error(f"Failed to download APK. Status code: {response.status_code}")
+        logging.error(f"Failed to download. Status code: {response.status_code}")
         return None
 
 # Function to run the Java command
