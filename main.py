@@ -28,7 +28,7 @@ class ColoredLevelFormatter(logging.Formatter):
     }
     
     TIMESTAMP_COLOR = "\x1b[36m"  # Cyan for timestamp
-    MESSAGE_COLOR = "\x1b[37m"    # White for the message content
+    #MESSAGE_COLOR = "\x1b[37m"    # White for the message content
     RESET_COLOR = "\x1b[0m"       # Reset color
 
     def format(self, record):
@@ -38,7 +38,7 @@ class ColoredLevelFormatter(logging.Formatter):
         # Format timestamp, level, and message separately
         timestamp = f"{self.TIMESTAMP_COLOR}{self.formatTime(record, self.datefmt)}{self.RESET_COLOR}"
         levelname = f"{levelname_color}{levelname}{self.RESET_COLOR}"
-        message = f"{self.MESSAGE_COLOR}{record.getMessage()}{self.RESET_COLOR}"
+        message = f"{record.getMessage()}"
 
         # Return the formatted log with consistent message color and different level/timestamp color
         formatted_log = f"{timestamp} [{levelname}] {message}"
