@@ -139,28 +139,8 @@ def download_resource(url: str, filename: str) -> str:
         return None
 
 # Function to run the Java command
-def run_java_command(cli_jar, patches_jar, integrations_apk, apkeditor, input_apk, version):
+def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version):
     output_apk = f'youtube-revanced-v{version}.apk'
-    
-    # Command to unzip APK
-    unzip_command = [
-        'java',
-        '-jar',
-        apkeditor,
-        'decode',  # Lệnh giải nén
-        '-i', input_apk,  # Tệp APK đầu vào
-        '-o', 'unpacked_apk'  # Thư mục đầu ra sau khi giải nén
-    ]
-    
-    # Command to rebuild APK after modifications
-    rebuild_command = [
-        'java',
-        '-jar',
-        apkeditor,
-        'b',  # Lệnh tái biên dịch APK
-        '-i', 'unpacked_apk',  # Thư mục đã giải nén
-        '-o', input_apk  # Tệp APK sau khi tái biên dịch
-    ]
     
     lib_command = [
         'zip',
@@ -180,51 +160,16 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, apkeditor, input_ap
     ]
     
     try:
-        # Step 1: Unzip the APK using APKEditor
-        logging.info("Unzipping the APK...")
-        process_unzip = subprocess.Popen(unzip_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        for line in iter(process_unzip.stdout.readline, b''):
-            print(line.decode().strip(), flush=True)
-
-        for line in iter(process_unzip.stderr.readline, b''):
-            print(f"ERROR: {line.decode().strip()}", flush=True)
-
-        process_unzip.stdout.close()
-        process_unzip.stderr.close()
-        process_unzip.wait()
-
-        if process_unzip.returncode != 0:
-            logging.error(f"Unzip command exited with return code: {process_unzip.returncode}")
-            return None
-
-        # Step 2: Rebuild the APK after modifications
-        logging.info("Rebuilding the APK...")
-        process_rebuild = subprocess.Popen(rebuild_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        for line in iter(process_rebuild.stdout.readline, b''):
-            print(line.decode().strip(), flush=True)
-
-        for line in iter(process_rebuild.stderr.readline, b''):
-            print(f"ERROR: {line.decode().strip()}", flush=True)
-
-        process_rebuild.stdout.close()
-        process_rebuild.stderr.close()
-        process_rebuild.wait()
-
-        if process_rebuild.returncode != 0:
-            logging.error(f"Rebuild command exited with return code: {process_rebuild.returncode}")
-            return None
-
-        # Step 3: Remove unnecessary libraries
-        logging.info(f"Removing unnecessary architectures from APK...")
+        # Run the lib_command first to delete unnecessary libs
+        logging.info(f"Remove some architectures...")
         process_lib = subprocess.Popen(lib_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         
+        # Print stdout and stderr in real-time with flush
         for line in iter(process_lib.stdout.readline, b''):
-            print(line.decode().strip(), flush=True)
+            print(line.decode().strip(), flush=True)  # Direct print for stdout with flush
         
         for line in iter(process_lib.stderr.readline, b''):
-            print(f"ERROR: {line.decode().strip()}", flush=True)
+            print(f"ERROR: {line.decode().strip()}", flush=True)  # Direct print for stderr with flush
         
         process_lib.stdout.close()
         process_lib.stderr.close()
@@ -232,17 +177,18 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, apkeditor, input_ap
 
         if process_lib.returncode != 0:
             logging.error(f"Lib command exited with return code: {process_lib.returncode}")
-            return None
+            return None  # Exit if lib_command fails
 
-        # Step 4: Patch the APK
-        logging.info(f"Patching {input_apk} with ReVanced patches...")
+        # Now run the patch command
+        logging.info(f"Patch {input_apk} with ReVanced patches...")
         process_patch = subprocess.Popen(patch_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+        # Print stdout and stderr in real-time with flush
         for line in iter(process_patch.stdout.readline, b''):
-            print(line.decode().strip(), flush=True)
+            print(line.decode().strip(), flush=True)  # Direct print for stdout with flush
         
         for line in iter(process_patch.stderr.readline, b''):
-            print(f"ERROR: {line.decode().strip()}", flush=True)
+            print(f"ERROR: {line.decode().strip()}", flush=True)  # Direct print for stderr with flush
         
         process_patch.stdout.close()
         process_patch.stderr.close()
@@ -250,7 +196,7 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, apkeditor, input_ap
 
         if process_patch.returncode != 0:
             logging.error(f"Patch command exited with return code: {process_patch.returncode}")
-            return None
+            return None  # Exit if patch_command fails
 
         logging.info(f"Successfully patched APK to {output_apk}.")
         return output_apk  # Return the path to the output APK
@@ -444,8 +390,7 @@ def run_build():
     repositories = [
         "https://github.com/ReVanced/revanced-patches/releases/latest",
         "https://github.com/ReVanced/revanced-cli/releases/latest",
-        "https://github.com/ReVanced/revanced-integrations/releases/latest",
-        "https://github.com/REAndroid/APKEditor/releases/latest"
+        "https://github.com/ReVanced/revanced-integrations/releases/latest"
     ]
 
     # Download the assets
@@ -458,7 +403,6 @@ def run_build():
     cli_jar_files = [f for f in all_downloaded_files if 'revanced-cli' in f and f.endswith('.jar')]
     patches_jar_files = [f for f in all_downloaded_files if 'revanced-patches' in f and f.endswith('.jar')]
     integrations_apk_files = [f for f in all_downloaded_files if 'revanced-integrations' in f and f.endswith('.apk')]
-    apkeditor_jar_files = [f for f in all_downloaded_files if 'APKEditor' in f and f.endswith('.jar')]
 
     # Ensure we have the required files
     if not cli_jar_files or not patches_jar_files or not integrations_apk_files:
@@ -467,14 +411,13 @@ def run_build():
         cli_jar = cli_jar_files[0]  # Get the first (and probably only) CLI JAR
         patches_jar = patches_jar_files[0]  # Get the first patches JAR
         integrations_apk = integrations_apk_files[0]  # Get the first integrations APK
-        apkeditor = apkeditor_jar_files[0]  # Get the first APKEditor JAR
 
         # Download the YouTube APK
         input_apk, version = download_uptodown()
 
         if input_apk:
             # Run the patching process
-            output_apk = run_java_command(cli_jar, patches_jar, integrations_apk, apkeditor, input_apk, version)
+            output_apk = run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
             if output_apk:
                 logging.info(f"Successfully created the patched APK: {output_apk}")
 
