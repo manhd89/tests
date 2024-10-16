@@ -182,7 +182,7 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
             print(f"ERROR: Patch command exited with return code: {process_patch.returncode}", flush=True)
             return None  # Exit if patch_command fails
 
-        print(f"Successfully patched APK to {output_apk}.", flush=True)
+        logging.info(f"Successfully patched APK to {output_apk}.")
         return output_apk  # Return the path to the output APK
 
     except Exception as e:
@@ -402,7 +402,7 @@ def run_build():
                 }
 
                 # Create GitHub release
-                create_github_release("YouTube ReVanced", download_files, output_apk)
+                create_github_release("ReVanced", download_files, output_apk)
             else:
                 logging.error("Failed to patch the APK.")
         else:
