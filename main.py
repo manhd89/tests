@@ -28,7 +28,7 @@ class ColoredLevelFormatter(logging.Formatter):
     }
     
     TIMESTAMP_COLOR = "\x1b[36m"  # Cyan for timestamp
-    MESSAGE_COLOR = "\x1b[35m"    # Purple for the message content
+    MESSAGE_COLOR = "\x1b[36m"    # Cyan for the message content
     RESET_COLOR = "\x1b[0m"       # Reset color
 
     def format(self, record):
