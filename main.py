@@ -355,18 +355,24 @@ def run_build():
     ]
 
     # Download the assets
+    all_downloaded_files = []
     for repo in repositories:
         downloaded_files = download_assets_from_repo(repo)
+        all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
 
     # After downloading, find the necessary files
-    cli_jar = downloaded_files['revanced-cli']
-    patches_jar = downloaded_files['revanced-patches']
-    integrations_apk = downloaded_files['revanced-integrations']
+    cli_jar_files = [f for f in all_downloaded_files if 'revanced-cli' in f and f.endswith('.jar')]
+    patches_jar_files = [f for f in all_downloaded_files if 'revanced-patches' in f and f.endswith('.jar')]
+    integrations_apk_files = [f for f in all_downloaded_files if 'revanced-integrations' in f and f.endswith('.apk')]
 
     # Ensure we have the required files
-    if not cli_jar or not patches_jar or not integrations_apk:
+    if not cli_jar_files or not patches_jar_files or not integrations_apk_files:
         logging.error("Failed to download necessary ReVanced files.")
     else:
+        cli_jar = cli_jar_files[0]  # Get the first (and probably only) CLI JAR
+        patches_jar = patches_jar_files[0]  # Get the first patches JAR
+        integrations_apk = integrations_apk_files[0]  # Get the first integrations APK
+
         # Download the YouTube APK
         input_apk, version = download_uptodown()
 
