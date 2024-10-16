@@ -139,8 +139,17 @@ def download_resource(url: str, filename: str) -> str:
         return None
 
 # Function to run the Java command
-def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version):
+def run_java_command(cli_jar, patches_jar, integrations_apk, apkeditor, input_apk, version):
     output_apk = f'youtube-revanced-v{version}.apk'
+    
+    merge_command = [
+        'java',
+        '-jar',
+        apkeditor,
+        'b',
+        '-i',
+        input_apk,
+    ] 
     
     lib_command = [
         'zip',
@@ -160,6 +169,25 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
     ]
     
     try:
+        # Run the lib_command first to delete unnecessary libs
+        logging.info(f"Merge to standard APK...")
+        merge_apk = subprocess.Popen(merge_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        # Print stdout and stderr in real-time with flush
+        for line in iter(merge_apk.stdout.readline, b''):
+            print(line.decode().strip(), flush=True)  # Direct print for stdout with flush
+        
+        for line in iter(merge_apk.stderr.readline, b''):
+            print(f"ERROR: {line.decode().strip()}", flush=True)  # Direct print for stderr with flush
+        
+        process_lib.stdout.close()
+        process_lib.stderr.close()
+        process_lib.wait()
+
+        if process_lib.returncode != 0:
+            logging.error(f"Merge command exited with return code: {process_lib.returncode}")
+            return None  # Exit if merge_command fails
+            
         # Run the lib_command first to delete unnecessary libs
         logging.info(f"Remove some architectures...")
         process_lib = subprocess.Popen(lib_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -390,7 +418,8 @@ def run_build():
     repositories = [
         "https://github.com/ReVanced/revanced-patches/releases/latest",
         "https://github.com/ReVanced/revanced-cli/releases/latest",
-        "https://github.com/ReVanced/revanced-integrations/releases/latest"
+        "https://github.com/ReVanced/revanced-integrations/releases/latest",
+        "https://github.com/REAndroid/APKEditor/releases/latest"
     ]
 
     # Download the assets
@@ -403,6 +432,7 @@ def run_build():
     cli_jar_files = [f for f in all_downloaded_files if 'revanced-cli' in f and f.endswith('.jar')]
     patches_jar_files = [f for f in all_downloaded_files if 'revanced-patches' in f and f.endswith('.jar')]
     integrations_apk_files = [f for f in all_downloaded_files if 'revanced-integrations' in f and f.endswith('.apk')]
+    apkeditor_jar_files = [f for f in all_downloaded_files if 'APKEditor' in f and f.endswith('.jar')]
 
     # Ensure we have the required files
     if not cli_jar_files or not patches_jar_files or not integrations_apk_files:
@@ -411,13 +441,14 @@ def run_build():
         cli_jar = cli_jar_files[0]  # Get the first (and probably only) CLI JAR
         patches_jar = patches_jar_files[0]  # Get the first patches JAR
         integrations_apk = integrations_apk_files[0]  # Get the first integrations APK
+        apkeditor = apkeditor_files[0]  # Get the first APKEditor JAR
 
         # Download the YouTube APK
         input_apk, version = download_uptodown()
 
         if input_apk:
             # Run the patching process
-            output_apk = run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
+            output_apk = run_java_command(cli_jar, patches_jar, integrations_apk, apkeditor, input_apk, version)
             if output_apk:
                 logging.info(f"Successfully created the patched APK: {output_apk}")
 
