@@ -17,9 +17,7 @@ import re
 github_token = os.getenv('GITHUB_TOKEN')
 repository = os.getenv('GITHUB_REPOSITORY')
 
-
 class ColoredLevelFormatter(logging.Formatter):
-    # Color codes for different parts of the log
     COLOR_CODE = {
         'DEBUG':    "\x1b[34m",  # Blue
         'INFO':     "\x1b[32m",  # Green
@@ -28,7 +26,6 @@ class ColoredLevelFormatter(logging.Formatter):
         'CRITICAL': "\x1b[41m",  # Red background
     }
     
-    # Color for other parts like timestamp, reset color
     TIMESTAMP_COLOR = "\x1b[36m"  # Cyan for timestamp
     RESET_COLOR = "\x1b[0m"       # Reset color
 
@@ -36,12 +33,11 @@ class ColoredLevelFormatter(logging.Formatter):
         levelname = record.levelname
         levelname_color = self.COLOR_CODE.get(levelname, "")
         
-        # Format the different parts of the log message
+        # Use record.getMessage() to correctly access the log message
         timestamp = f"{self.TIMESTAMP_COLOR}{self.formatTime(record, self.datefmt)}{self.RESET_COLOR}"
         levelname = f"{levelname_color}{levelname}{self.RESET_COLOR}"
-        message = f"{record.message}"
+        message = f"{record.getMessage()}"
 
-        # Customize the full log message format
         formatted_log = f"{timestamp} [{levelname}] {message}"
         return formatted_log
 
