@@ -95,8 +95,8 @@ def get_download_link(version: str) -> str:
                 # Parse the download page for the actual download link
                 soup = BeautifulSoup(driver.page_source, "html.parser")
                 download_button = soup.find('button', {'id': 'detail-download-button'})
-                if download_button and download_button.get('data-url'):
-                    data_url = download_button.get('data-url')
+                if download_button and download_button["data-url"]:
+                    data_url = download_button["data-url"]
                     full_url = f"https://dw.uptodown.com/dwn/{data_url}"
                     driver.quit()
                     return full_url
