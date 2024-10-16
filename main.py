@@ -135,7 +135,7 @@ def download_resource(url: str, filename: str) -> str:
         )
         return filepath
     else:
-        logging.error(f"Failed to download APK. Status code: {response.status_code}")
+        logging.error(f"Failed to download file. Status code: {response.status_code}")
         return None
 
 # Function to run the Java command
@@ -236,9 +236,13 @@ def download_uptodown():
 def download_assets_from_repo(release_url):
     driver = create_chrome_driver()
     driver.get(release_url)
-    
-    downloaded_files = []
-    
+
+    downloaded_files = {
+        'integrations': None,
+        'patches': None,
+        'cli': None
+    }
+
     try:
         WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, "repo-content-pjax-container")))
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -249,32 +253,20 @@ def download_assets_from_repo(release_url):
 
         for link in asset_links:
             asset_url = link.get_attribute('href')
-            if not asset_url.endswith('.asc'):  # Skip signature files
-                response = requests.head(asset_url, allow_redirects=True)
-                if response.status_code == 200:
-                    download_response = requests.get(asset_url, allow_redirects=True, stream=True)
-                    final_url = download_response.url  # Get the final URL after any redirections
-                    filename = asset_url.split('/')[-1]
-                    total_size = int(download_response.headers.get('Content-Length', 0))
-                    downloaded_size = 0
+            filename = asset_url.split('/')[-1]
 
-                    with open(filename, 'wb') as file:
-                        for chunk in download_response.iter_content(chunk_size=1024):
-                            if chunk:
-                                file.write(chunk)
-                                downloaded_size += len(chunk)
-
-                    # Logging the download progress with final_url
-                    logging.info(
-                        f"URL:{final_url} [{downloaded_size}/{total_size}] -> \"{filename}\" [1]"
-                    )
-                    downloaded_files.append(filename)  # Store downloaded filename
+            if 'revanced-integrations' in filename and filename.endswith('.apk'):
+                downloaded_files['integrations'] = download_resource(asset_url, filename)
+            elif 'revanced-patches' in filename and filename.endswith('.jar'):
+                downloaded_files['patches'] = download_resource(asset_url, filename)
+            elif 'revanced-cli' in filename and filename.endswith('.jar'):
+                downloaded_files['cli'] = download_resource(asset_url, filename)
     except Exception as e:
         logging.error(f"Error while downloading from {release_url}: {e}")
     finally:
         driver.quit()
     
-    return downloaded_files  # Return the list of downloaded files
+    return downloaded_files
 
 # Extract version from the file name
 def extract_version(file_path):
@@ -393,25 +385,27 @@ def run_build():
         "https://github.com/ReVanced/revanced-integrations/releases/latest"
     ]
 
-    # Download the assets
-    all_downloaded_files = []
+    # Dictionary to store all downloaded files
+    all_downloaded_files = {
+        'integrations': None,
+        'patches': None,
+        'cli': None
+    }
+
+    # Download the assets and populate the dictionary
     for repo in repositories:
         downloaded_files = download_assets_from_repo(repo)
-        all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
+        all_downloaded_files.update(downloaded_files)  # Update the main dictionary
 
-    # After downloading, find the necessary files
-    cli_jar_files = [f for f in all_downloaded_files if 'revanced-cli' in f and f.endswith('.jar')]
-    patches_jar_files = [f for f in all_downloaded_files if 'revanced-patches' in f and f.endswith('.jar')]
-    integrations_apk_files = [f for f in all_downloaded_files if 'revanced-integrations' in f and f.endswith('.apk')]
+    # Extract the necessary files
+    integrations_apk = all_downloaded_files['integrations']
+    patches_jar = all_downloaded_files['patches']
+    cli_jar = all_downloaded_files['cli']
 
     # Ensure we have the required files
-    if not cli_jar_files or not patches_jar_files or not integrations_apk_files:
+    if not cli_jar or not patches_jar or not integrations_apk:
         logging.error("Failed to download necessary ReVanced files.")
     else:
-        cli_jar = cli_jar_files[0]  # Get the first (and probably only) CLI JAR
-        patches_jar = patches_jar_files[0]  # Get the first patches JAR
-        integrations_apk = integrations_apk_files[0]  # Get the first integrations APK
-
         # Download the YouTube APK
         input_apk, version = download_uptodown()
 
