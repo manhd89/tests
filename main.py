@@ -181,7 +181,7 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
             return None  # Exit if lib_command fails
 
         # Now run the patch command
-        logging.info(f"Patch {input_apk} with Revanced patches...")
+        logging.info(f"Patch {input_apk} with ReVanced patches...")
         process_patch = subprocess.Popen(patch_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         # Print stdout and stderr in real-time with flush
@@ -234,13 +234,6 @@ def download_uptodown():
         return file_path, version  # Return both the file path and version
 
 # Download ReVanced assets from GitHub and return the paths of the downloaded files
-import os
-import requests
-import logging
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
 def download_assets_from_repo(release_url):
     driver = create_chrome_driver()
     driver.get(release_url)
@@ -261,6 +254,7 @@ def download_assets_from_repo(release_url):
                 response = requests.head(asset_url, allow_redirects=True)
                 if response.status_code == 200:
                     download_response = requests.get(asset_url, allow_redirects=True, stream=True)
+                    final_url = download_response.url  # Get the final URL after any redirections
                     filename = asset_url.split('/')[-1]
                     total_size = int(download_response.headers.get('Content-Length', 0))
                     downloaded_size = 0
@@ -271,10 +265,12 @@ def download_assets_from_repo(release_url):
                                 file.write(chunk)
                                 downloaded_size += len(chunk)
 
-                    # Logging the download progress
-                    logging.info(
-                        f"URL:{asset_url} [{downloaded_size}/{total_size}] -> \"{filename}\" [1]"
-                    )
+                                # Logging the download progress with final_url
+                                logging.info(
+                                    f"URL:{final_url} [{downloaded_size}/{total_size}] -> \"{filename}\" [1]"
+                                )
+
+                    logging.info(f"Downloaded {filename} successfully.")
                     downloaded_files.append(filename)  # Store downloaded filename
     except Exception as e:
         logging.error(f"Error while downloading from {release_url}: {e}")
