@@ -180,11 +180,11 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, apkeditor, input_ap
         for line in iter(merge_apk.stderr.readline, b''):
             print(f"ERROR: {line.decode().strip()}", flush=True)  # Direct print for stderr with flush
         
-        process_lib.stdout.close()
-        process_lib.stderr.close()
-        process_lib.wait()
+        merge_apk.stdout.close()
+        merge_apk.stderr.close()
+        merge_apk.wait()
 
-        if process_lib.returncode != 0:
+        if merge_apk.returncode != 0:
             logging.error(f"Merge command exited with return code: {process_lib.returncode}")
             return None  # Exit if merge_command fails
             
