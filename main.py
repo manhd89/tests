@@ -149,42 +149,44 @@ def run_java_command(cli_jar, patches_jar, integrations_apk, input_apk, version)
         # Run the lib_command first to delete unnecessary libs
         process_lib = subprocess.Popen(lib_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         
+        # Print stdout and stderr in real-time with flush
         for line in iter(process_lib.stdout.readline, b''):
-            logging.info(line.decode().strip())
+            print(line.decode().strip(), flush=True)  # Direct print for stdout with flush
         
         for line in iter(process_lib.stderr.readline, b''):
-            logging.error(line.decode().strip())
+            print(f"ERROR: {line.decode().strip()}", flush=True)  # Direct print for stderr with flush
         
         process_lib.stdout.close()
         process_lib.stderr.close()
         process_lib.wait()
 
         if process_lib.returncode != 0:
-            logging.error(f"Lib command exited with return code: {process_lib.returncode}")
+            print(f"ERROR: Lib command exited with return code: {process_lib.returncode}", flush=True)
             return None  # Exit if lib_command fails
 
         # Now run the patch command
         process_patch = subprocess.Popen(patch_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+        # Print stdout and stderr in real-time with flush
         for line in iter(process_patch.stdout.readline, b''):
-            logging.info(line.decode().strip())
+            print(line.decode().strip(), flush=True)  # Direct print for stdout with flush
         
         for line in iter(process_patch.stderr.readline, b''):
-            logging.error(line.decode().strip())
+            print(f"ERROR: {line.decode().strip()}", flush=True)  # Direct print for stderr with flush
         
         process_patch.stdout.close()
         process_patch.stderr.close()
         process_patch.wait()
 
         if process_patch.returncode != 0:
-            logging.error(f"Patch command exited with return code: {process_patch.returncode}")
+            print(f"ERROR: Patch command exited with return code: {process_patch.returncode}", flush=True)
             return None  # Exit if patch_command fails
 
-        logging.info(f"Successfully patched APK to {output_apk}.")
+        print(f"Successfully patched APK to {output_apk}.", flush=True)
         return output_apk  # Return the path to the output APK
 
     except Exception as e:
-        logging.error(f"Exception occurred: {e}")
+        print(f"ERROR: Exception occurred: {e}", flush=True)
         return None
         
 # Main function to download APK from Uptodown based on patches.json versions
