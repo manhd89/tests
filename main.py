@@ -128,14 +128,12 @@ def download_resource(url: str, filename: str) -> str:
             for chunk in response.iter_content(chunk_size=1024):
                 if chunk:  # Filter out keep-alive chunks
                     apk_file.write(chunk)
-                    downloaded_size += len(chunk)
-                    
-                    # Logging the download progress
-                    logging.info(
-                        f"URL: {final_url} [{downloaded_size}/{total_size}] -> \"{filename}\" [1]"
-                    )
-
-        logging.info(f"Downloaded {filename} successfully.")
+                    downloaded_size += len(chunk)        
+        
+        # Logging the download progress
+        logging.info(
+            f"URL: {final_url} [{downloaded_size}/{total_size}] -> \"{filename}\" [1]"
+        )
         return filepath
     else:
         logging.error(f"Failed to download. Status code: {response.status_code}")
