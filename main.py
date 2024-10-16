@@ -265,12 +265,10 @@ def download_assets_from_repo(release_url):
                                 file.write(chunk)
                                 downloaded_size += len(chunk)
 
-                                # Logging the download progress with final_url
-                                logging.info(
-                                    f"URL:{final_url} [{downloaded_size}/{total_size}] -> \"{filename}\" [1]"
-                                )
-
-                    logging.info(f"Downloaded {filename} successfully.")
+                    # Logging the download progress with final_url
+                    logging.info(
+                        f"URL:{final_url} [{downloaded_size}/{total_size}] -> \"{filename}\" [1]"
+                    )
                     downloaded_files.append(filename)  # Store downloaded filename
     except Exception as e:
         logging.error(f"Error while downloading from {release_url}: {e}")
