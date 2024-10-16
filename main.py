@@ -441,7 +441,7 @@ def run_build():
         cli_jar = cli_jar_files[0]  # Get the first (and probably only) CLI JAR
         patches_jar = patches_jar_files[0]  # Get the first patches JAR
         integrations_apk = integrations_apk_files[0]  # Get the first integrations APK
-        apkeditor = apkeditor_files[0]  # Get the first APKEditor JAR
+        apkeditor = apkeditor_jar_files[0]  # Get the first APKEditor JAR
 
         # Download the YouTube APK
         input_apk, version = download_uptodown()
