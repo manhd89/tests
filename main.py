@@ -205,23 +205,28 @@ def download_uptodown():
         return file_path, version  # Return both the file path and version
 
 # Download ReVanced assets from GitHub and return the paths of the downloaded files
-def download_assets_from_repo(release_url):
+def download_assets_from_repo(release_url, repo_name):
     driver = create_chrome_driver()
     driver.get(release_url)
     
-    downloaded_files = []
+    downloaded_files = {}
     
     try:
+        # Wait until the release content is loaded on the page
         WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, "repo-content-pjax-container")))
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
+        # Locate all asset download links on the page
         asset_links = WebDriverWait(driver, 15).until(
             EC.presence_of_all_elements_located((By.XPATH, "//a[contains(@href, '/releases/download/')]"))
         )
 
+        # List to store files for the current repository
+        files_for_repo = []
+        
         for link in asset_links:
             asset_url = link.get_attribute('href')
-            if not asset_url.endswith('.asc'):  # Skip signature files
+            if not asset_url.endswith('.asc'):  # Skip .asc signature files
                 response = requests.head(asset_url, allow_redirects=True)
                 if response.status_code == 200:
                     download_response = requests.get(asset_url, allow_redirects=True)
@@ -229,13 +234,16 @@ def download_assets_from_repo(release_url):
                     with open(filename, 'wb') as file:
                         file.write(download_response.content)
                     logging.info(f"Downloaded {filename} successfully.")
-                    downloaded_files.append(filename)  # Store downloaded filename
+                    files_for_repo.append(filename)  # Store the downloaded filename in the list
+        
+        # Add the downloaded files to the dictionary, using the repo name as the key
+        downloaded_files[repo_name] = files_for_repo
     except Exception as e:
         logging.error(f"Error while downloading from {release_url}: {e}")
     finally:
         driver.quit()
     
-    return downloaded_files  # Return the list of downloaded files
+    return downloaded_files  # Return the dictionary containing downloaded files
 
 # Extract version from the file name
 def extract_version(file_path):
@@ -347,29 +355,29 @@ def create_github_release(app_name, download_files, apk_file_path):
 def run_build():
     logging.info("Running build process...")
 
-    # List of repositories to download assets from
+    # List of repositories and their names
     repositories = [
-        "https://github.com/ReVanced/revanced-patches/releases/latest",
-        "https://github.com/ReVanced/revanced-cli/releases/latest",
-        "https://github.com/ReVanced/revanced-integrations/releases/latest"
+        {"url": "https://github.com/ReVanced/revanced-patches/releases/latest", "name": "revanced-patches"},
+        {"url": "https://github.com/ReVanced/revanced-cli/releases/latest", "name": "revanced-cli"},
+        {"url": "https://github.com/ReVanced/revanced-integrations/releases/latest", "name": "revanced-integrations"}
     ]
 
     # Download the assets
-    all_downloaded_files = []
+    all_downloaded_files = {}
     for repo in repositories:
-        downloaded_files = download_assets_from_repo(repo)
-        all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
+        downloaded_files = download_assets_from_repo(repo['url'], repo['name'])
+        all_downloaded_files.update(downloaded_files)  # Add downloaded files to the main dictionary
 
-    # After downloading, find the necessary files
-    cli_jar_files = [f for f in all_downloaded_files if 'revanced-cli' in f and f.endswith('.jar')]
-    patches_jar_files = [f for f in all_downloaded_files if 'revanced-patches' in f and f.endswith('.jar')]
-    integrations_apk_files = [f for f in all_downloaded_files if 'revanced-integrations' in f and f.endswith('.apk')]
+    # Extract the necessary files
+    cli_jar_files = all_downloaded_files.get('revanced-cli', [])
+    patches_jar_files = all_downloaded_files.get('revanced-patches', [])
+    integrations_apk_files = all_downloaded_files.get('revanced-integrations', [])
 
     # Ensure we have the required files
     if not cli_jar_files or not patches_jar_files or not integrations_apk_files:
         logging.error("Failed to download necessary ReVanced files.")
     else:
-        cli_jar = cli_jar_files[0]  # Get the first (and probably only) CLI JAR
+        cli_jar = cli_jar_files[0]  # Get the first CLI JAR
         patches_jar = patches_jar_files[0]  # Get the first patches JAR
         integrations_apk = integrations_apk_files[0]  # Get the first integrations APK
 
@@ -395,7 +403,6 @@ def run_build():
                 logging.error("Failed to patch the APK.")
         else:
             logging.error("Failed to download the YouTube APK.")
-
 
 # Function to get the latest release version from a GitHub repository
 def get_latest_release_version(repo: str) -> str:
