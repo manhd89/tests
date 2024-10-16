@@ -1,6 +1,10 @@
+import os
+import re
+import json
 import logging
 import requests
 import subprocess
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -8,10 +12,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
-from bs4 import BeautifulSoup
-import os
-import json
-import re
 
 # Environment variables for GitHub token and repository
 github_token = os.getenv('GITHUB_TOKEN')
