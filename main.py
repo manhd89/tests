@@ -240,7 +240,9 @@ def download_assets_from_repo(release_url):
     downloaded_files = []
     
     try:
-        WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, "repo-content-pjax-container")))
+        WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.ID, "repo-content-pjax-container"))
+        )
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
         asset_links = WebDriverWait(driver, 15).until(
@@ -327,7 +329,9 @@ def create_github_release(app_name, download_files, apk_file_path):
                 if delete_asset_response.status_code == 204:
                     logging.info(f"Successfully deleted existing asset: {asset['name']}")
                 else:
-                    logging.error(f"Failed to delete existing asset: {asset['name']} - {delete_asset_response.json()}")
+                    logging.error(
+                        f"Failed to delete existing asset: {asset['name']} - {delete_asset_response.json()}"
+                    )
         
     else:
         # Create new release if it doesn't exist
@@ -363,7 +367,10 @@ def create_github_release(app_name, download_files, apk_file_path):
         existing_release_id = new_release["id"]
 
     # Upload new APK file
-    upload_url_apk = f"https://uploads.github.com/repos/{repository}/releases/{existing_release_id}/assets?name={os.path.basename(apk_file_path)}"
+    upload_url_apk = (
+        f"https://uploads.github.com/repos/{repository}/releases/"
+        f"{existing_release_id}/assets?name={os.path.basename(apk_file_path)}"
+    )
     with open(apk_file_path, 'rb') as apk_file:
         apk_file_content = apk_file.read()
 
