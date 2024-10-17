@@ -63,7 +63,10 @@ def create_chrome_driver():
         "--disable-dev-shm-usage",
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
     ]
-    chrome_options.add_argument(options)
+    
+    for option in options:
+        chrome_options.add_argument(option)
+        
     service = Service(chrome_driver_path)
     driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
