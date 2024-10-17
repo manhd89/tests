@@ -398,19 +398,15 @@ def run_build():
         downloaded_files = download_assets_from_repo(repo)
         all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
 
-    # Sử dụng lambda và filter để tìm tệp
-    cli_jar_files = list(filter(lambda f: 'revanced-cli' in f and f.endswith('.jar'), all_downloaded_files))
-    patches_jar_files = list(filter(lambda f: 'revanced-patches' in f and f.endswith('.jar'), all_downloaded_files))
-    integrations_apk_files = list(filter(lambda f: 'revanced-integrations' in f and f.endswith('.apk'), all_downloaded_files))
+    # After downloading, find the necessary files
+    cli_jar = next(filter(lambda f: 'revanced-cli' in f and f.endswith('.jar'), all_downloaded_files), None)
+    patches_jar = next(filter(lambda f: 'revanced-patches' in f and f.endswith('.jar'), all_downloaded_files), None)
+    integrations_apk = next(filter(lambda f: 'revanced-integrations' in f and f.endswith('.apk'), all_downloaded_files), None)
 
     # Ensure we have the required files
-    if not cli_jar_files or not patches_jar_files or not integrations_apk_files:
+    if not cli_jar or not patches_jar or not integrations_apk:
         logging.error("Failed to download necessary ReVanced files.")
     else:
-        cli_jar = cli_jar_files[0]  # Get the first (and probably only) CLI JAR
-        patches_jar = patches_jar_files[0]  # Get the first patches JAR
-        integrations_apk = integrations_apk_files[0]  # Get the first integrations APK
-
         # Download the YouTube APK
         input_apk, version = download_uptodown()
 
@@ -434,6 +430,7 @@ def run_build():
         else:
             logging.error("Failed to download the YouTube APK.")
 
+    
 # Function to get the latest release version from a GitHub repository
 def get_latest_release_version(repo: str) -> str:
     url = f"https://api.github.com/repos/{repo}/releases/latest"
