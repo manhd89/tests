@@ -54,20 +54,6 @@ logger.addHandler(console)
 # Path to ChromeDriver
 chrome_driver_path = "/usr/bin/chromedriver"
 
-from selenium import webdriver
-
-def configure_chrome_options():
-    chrome_options = webdriver.ChromeOptions()
-
-    # List các tùy chọn Chrome
-    
-
-    # Thêm từng tùy chọn vào ChromeOptions
-    for option in options:
-        chrome_options.add_argument(option)
-
-    return chrome_options
-
 # Create Chrome driver with headless options
 def create_chrome_driver():
     chrome_options = Options()
