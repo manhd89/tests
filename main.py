@@ -399,10 +399,22 @@ def run_build():
         all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
 
     # After downloading, find the necessary files
-    cli_jar = next(filter(lambda f: 'revanced-cli' in f and f.endswith('.jar'), all_downloaded_files), None)
-    patches_jar = next(filter(lambda f: 'revanced-patches' in f and f.endswith('.jar'), all_downloaded_files), None)
-    integrations_apk = next(filter(lambda f: 'revanced-integrations' in f and f.endswith('.apk'), all_downloaded_files), None)
-
+    cli_jar = next(
+        filter(
+            lambda f: 'revanced-cli' in f and f.endswith('.jar'), all_downloaded_files
+        )
+    )
+    patches_jar = next(
+        filter(
+            lambda f: 'revanced-patches' in f and f.endswith('.jar'), all_downloaded_files
+        )
+    )
+    integrations_apk = next(
+        filter(
+            lambda f: 'revanced-integrations' in f and f.endswith('.apk'), all_downloaded_files
+        )
+    )
+    
     # Ensure we have the required files
     if not cli_jar or not patches_jar or not integrations_apk:
         logging.error("Failed to download necessary ReVanced files.")
