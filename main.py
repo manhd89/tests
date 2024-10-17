@@ -249,7 +249,7 @@ def download_uptodown():
 def download_assets_from_repo(release_url):
     driver = create_chrome_driver()
     driver.get(release_url)
-
+    
     downloaded_files = []
     
     try:
@@ -282,7 +282,7 @@ def download_assets_from_repo(release_url):
                 logging.info(
                     f"URL:{final_url} [{downloaded_size}/{total_size}] -> \"{filename}\" [1]"
                 )
-                downloaded_files.update(filename)  # Store downloaded filename
+                downloaded_files.append(filename)  # Store downloaded filename
     except Exception as e:
         logging.error(f"Error while downloading from {release_url}: {e}")
     finally:
@@ -412,12 +412,11 @@ def run_build():
         "https://github.com/ReVanced/revanced-integrations/releases/latest"
     ]
 
-    # Download the asseta
+    # Download the assets
+    all_downloaded_files = []
     for repo in repositories:
         downloaded_files = download_assets_from_repo(repo)
-        
-    logging.info(f"{downloaded_files}")
-    exit(0)
+        all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
 
     # After downloading, find the necessary files
     cli_jar = next(
