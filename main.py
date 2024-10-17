@@ -418,6 +418,8 @@ def run_build():
         downloaded_files = download_assets_from_repo(repo)
         all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
 
+    logging.info(f"{all_downloaded_files}")
+    
     # After downloading, find the necessary files
     cli_jar = next(
         filter(
