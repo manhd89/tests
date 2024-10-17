@@ -466,7 +466,7 @@ def run_build():
 # Function to get the latest release version from a GitHub repository
 def get_latest_release_version(repo: str) -> str:
     url = f"https://api.github.com/repos/{repo}/releases/latest"
-    headers = {"Authorization": f"token {os.getenv('GITHUB_TOKEN')}"}
+    headers = {"Authorization": f"token {github_token}"}
     
     try:
         response = requests.get(url, headers=headers)
