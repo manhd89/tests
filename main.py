@@ -412,13 +412,12 @@ def run_build():
         "https://github.com/ReVanced/revanced-integrations/releases/latest"
     ]
 
-    # Download the assets
-    all_downloaded_files = []
+    # Download the asseta
     for repo in repositories:
         downloaded_files = download_assets_from_repo(repo)
-        all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
-
-    logging.info(f"{all_downloaded_files}")
+        
+    logging.info(f"{downloaded_files}")
+    exit(0)
 
     # After downloading, find the necessary files
     cli_jar = next(
