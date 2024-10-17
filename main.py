@@ -249,26 +249,25 @@ def download_assets_from_repo(release_url):
 
         for link in asset_links:
             asset_url = link.get_attribute('href')
-            if not asset_url.endswith('.asc'):  # Skip signature files
-                response = requests.head(asset_url, allow_redirects=True)
-                if response.status_code == 200:
-                    download_response = requests.get(asset_url, allow_redirects=True, stream=True)
-                    final_url = download_response.url  # Get the final URL after any redirections
-                    filename = asset_url.split('/')[-1]
-                    total_size = int(download_response.headers.get('Content-Length', 0))
-                    downloaded_size = 0
+            response = requests.head(asset_url, allow_redirects=True)
+            if response.status_code == 200:
+                download_response = requests.get(asset_url, allow_redirects=True, stream=True)
+                final_url = download_response.url  # Get the final URL after any redirections
+                filename = asset_url.split('/')[-1]
+                total_size = int(download_response.headers.get('Content-Length', 0))
+                downloaded_size = 0
 
-                    with open(filename, 'wb') as file:
-                        for chunk in download_response.iter_content(chunk_size=1024):
-                            if chunk:
-                                file.write(chunk)
-                                downloaded_size += len(chunk)
+                with open(filename, 'wb') as file:
+                    for chunk in download_response.iter_content(chunk_size=1024):
+                        if chunk:
+                            file.write(chunk)
+                            downloaded_size += len(chunk)
 
-                    # Logging the download progress with final_url
-                    logging.info(
-                        f"URL:{final_url} [{downloaded_size}/{total_size}] -> \"{filename}\" [1]"
-                    )
-                    downloaded_files.append(filename)  # Store downloaded filename
+                # Logging the download progress with final_url
+                logging.info(
+                    f"URL:{final_url} [{downloaded_size}/{total_size}] -> \"{filename}\" [1]"
+                )
+                downloaded_files.append(filename)  # Store downloaded filename
     except Exception as e:
         logging.error(f"Error while downloading from {release_url}: {e}")
     finally:
