@@ -249,8 +249,8 @@ def download_uptodown():
 def download_assets_from_repo(release_url):
     driver = create_chrome_driver()
     driver.get(release_url)
-    
-    downloaded_files = []
+
+    downloaded_files = {}
     
     try:
         WebDriverWait(driver, 15).until(
@@ -282,7 +282,7 @@ def download_assets_from_repo(release_url):
                 logging.info(
                     f"URL:{final_url} [{downloaded_size}/{total_size}] -> \"{filename}\" [1]"
                 )
-                downloaded_files.append(filename)  # Store downloaded filename
+                downloaded_files.setdefault(repo_info['repo'].replace("/", ""), []).append(filepath)  # Store downloaded filename
     except Exception as e:
         logging.error(f"Error while downloading from {release_url}: {e}")
     finally:
