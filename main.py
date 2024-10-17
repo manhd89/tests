@@ -57,13 +57,19 @@ chrome_driver_path = "/usr/bin/chromedriver"
 # Create Chrome driver with headless options
 def create_chrome_driver():
     chrome_options = Options()
+
+    # Declare options
     options = [
         "--headless",
         "--no-sandbox",
         "--disable-dev-shm-usage",
-        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+        (
+            f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            f"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+        )
     ]
-    
+
+    # Add all options
     for option in options:
         chrome_options.add_argument(option)
         
@@ -116,7 +122,10 @@ def download_resource(url: str, filename: str) -> str:
     
     # Add User-Agent header
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Android 13; Mobile; rv:125.0) Gecko/125.0 Firefox/125.0'
+        'User-Agent': (
+            f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            f"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+        )
     }
 
     response = requests.get(url, headers=headers, stream=True)
