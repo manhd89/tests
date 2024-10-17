@@ -398,10 +398,10 @@ def run_build():
         downloaded_files = download_assets_from_repo(repo)
         all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
 
-    # After downloading, find the necessary files
-    cli_jar_files = [f for f in all_downloaded_files if 'revanced-cli' in f and f.endswith('.jar')]
-    patches_jar_files = [f for f in all_downloaded_files if 'revanced-patches' in f and f.endswith('.jar')]
-    integrations_apk_files = [f for f in all_downloaded_files if 'revanced-integrations' in f and f.endswith('.apk')]
+    # Sử dụng lambda và filter để tìm tệp
+    cli_jar_files = list(filter(lambda f: 'revanced-cli' in f and f.endswith('.jar'), all_downloaded_files))
+    patches_jar_files = list(filter(lambda f: 'revanced-patches' in f and f.endswith('.jar'), all_downloaded_files))
+    integrations_apk_files = list(filter(lambda f: 'revanced-integrations' in f and f.endswith('.apk'), all_downloaded_files))
 
     # Ensure we have the required files
     if not cli_jar_files or not patches_jar_files or not integrations_apk_files:
@@ -433,7 +433,6 @@ def run_build():
                 logging.error("Failed to patch the APK.")
         else:
             logging.error("Failed to download the YouTube APK.")
-
 
 # Function to get the latest release version from a GitHub repository
 def get_latest_release_version(repo: str) -> str:
