@@ -282,7 +282,7 @@ def download_assets_from_repo(release_url):
                 logging.info(
                     f"URL:{final_url} [{downloaded_size}/{total_size}] -> \"{filename}\" [1]"
                 )
-                downloaded_files.extend(filename)  # Store downloaded filename
+                downloaded_files.update(filename)  # Store downloaded filename
     except Exception as e:
         logging.error(f"Error while downloading from {release_url}: {e}")
     finally:
