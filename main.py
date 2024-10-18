@@ -421,26 +421,15 @@ def run_build():
         all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
 
     
-    found_files = next(file for file in all_downloaded_files if glob.fnmatch.fnmatch(file, 'revanced-patches*.jar'))
-    logging.info(f"{found_files}")
-
-    exit(0)
-    
     # After downloading, find the necessary files
     cli_jar = next(
-        filter(
-            lambda f: 'revanced-cli' in f and f.endswith('.jar'), all_downloaded_files
-        )
+        file for file in all_downloaded_files if glob.fnmatch.fnmatch(file, 'revanced-cli*.jar')
     )
-    patches_jar = next(
-        filter(
-            lambda f: 'revanced-patches' in f and f.endswith('.jar'), all_downloaded_files
-        )
+    patch_jar = next(
+        file for file in all_downloaded_files if glob.fnmatch.fnmatch(file, 'revanced-patches*.jar')
     )
     integrations_apk = next(
-        filter(
-            lambda f: 'revanced-integrations' in f and f.endswith('.apk'), all_downloaded_files
-        )
+        file for file in all_downloaded_files if glob.fnmatch.fnmatch(file, 'revanced-integrations*.apk')
     )
     
     # Ensure we have the required files
