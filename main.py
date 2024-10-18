@@ -421,7 +421,7 @@ def run_build():
         all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
 
     
-    found_files = list(next(file for file in all_downloaded_files if glob.fnmatch.fnmatch(file, 'revanced-patches*.jar')))
+    found_files = next(file for file in all_downloaded_files if glob.fnmatch.fnmatch(file, 'revanced-patches*.jar'))
     logging.info(f"{found_files}")
 
     exit(0)
