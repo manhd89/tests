@@ -423,13 +423,15 @@ def run_build():
     
     # After downloading, find the necessary files
     find_file = lambda pattern: next(
-        file for file in all_downloaded_files if glob.fnmatch.fnmatch(file, pattern)
+        filter(
+            lambda file: glob.fnmatch.fnmatch(file, pattern), all_downloaded_files
+        )
     )
 
     cli_jar = find_file('revanced-cli*.jar')
     patches_jar = find_file('revanced-patches*.jar')
     integrations_apk = find_file('revanced-integrations*.apk')
-    
+
     # Ensure we have the required files
     if not cli_jar or not patches_jar or not integrations_apk:
         logging.error("Failed to download necessary ReVanced files.")
