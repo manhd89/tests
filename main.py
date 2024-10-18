@@ -425,7 +425,7 @@ def run_build():
     cli_jar = next(
         file for file in all_downloaded_files if glob.fnmatch.fnmatch(file, 'revanced-cli*.jar')
     )
-    patch_jar = next(
+    patches_jar = next(
         file for file in all_downloaded_files if glob.fnmatch.fnmatch(file, 'revanced-patches*.jar')
     )
     integrations_apk = next(
