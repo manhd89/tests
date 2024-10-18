@@ -231,8 +231,8 @@ def download_uptodown():
             if compatible_packages and isinstance(compatible_packages, list):
                 for package in compatible_packages:
                     if (
-                        package.get("name") == "com.google.android.youtube" and
-                        package.get("versions") is not None and
+                        package["name"] == "com.google.android.youtube" and
+                        package["versions"] is not None and
                         isinstance(package["versions"], list) and
                         package["versions"]
                     ):
