@@ -1,6 +1,8 @@
 import os
 import re
+import glob
 import json
+import fnmatch
 import logging
 import requests
 import subprocess
@@ -418,7 +420,11 @@ def run_build():
         downloaded_files = download_assets_from_repo(repo)
         all_downloaded_files.extend(downloaded_files)  # Combine all downloaded files
 
-    logging.info(f"{all_downloaded_files}")
+    
+    found_files = [file for file in all_downloaded_files if glob.fnmatch.fnmatch(file, 'revanced-patches*.jar')]
+    logging.info(f"{found_files}")
+
+    exit(0)
     
     # After downloading, find the necessary files
     cli_jar = next(
